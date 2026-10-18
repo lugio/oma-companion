@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.lugio.companion",
+  "name": "Alison",
+  "version": "0.17.0",
+  "description": "Desktop assistant: Omarchy’s default agent, actions approved with a click, local voice and wake word, and self-organizing memory.",
+  "author": "lugio",
+  "license": "GPL-3.0-or-later",
+  "kinds": [
+    "panel",
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "panel": "Companion.qml",
+    "service": "WakeService.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "keepLoaded": true,
+  "barWidget": {
+    "displayName": "Alison",
+    "category": "AI",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "mode": "chat",
+      "home": false,
+      "mail": true,
+      "erp": true,
+      "portail": true,
+      "robot": true,
+      "voice": false,
+      "wakeword": false,
+      "conversation": false,
+      "barge": true,
+      "voiceDecide": false,
+      "recall": true,
+      "dreams": true
+    }
+  }
+}

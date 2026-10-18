@@ -1,0 +1,1931 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réglages du robot</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Réglages du robot Reachy Mini, servis par son corps sur le réseau local.">
+<!-- Page de réglages du robot (11/10/2026), servie par reachy_page.py. Aucune dépendance externe. -->
+<style>
+/* Refonte du 12/10/2026 : rubriques regroupées, tiroir sur mobile, contrastes AA (clair et sombre), échelle
+   d'espacements et de tailles, focus visibles, animations courtes (coupées si « réduire les animations »). */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --surface-2:#f0f2f5; --line:#e2e5ea; --line-2:#cfd4dc;
+  --text:#1b1e24; --muted:#5f6673; --faint:#646b77;
+  --accent:#3b6fd8; --accent-soft:#e6eefc; --accent-text:#2550a8; --on-accent:#ffffff;
+  --ok:#17703d; --ok-soft:#e3f4ea; --warn:#8a5600; --warn-soft:#fbf0db; --bad:#b02e2e; --bad-soft:#fbe5e5;
+  --track:#d9dde4; --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
+  --shadow-lg:0 12px 40px rgba(16,24,40,.18);
+  --ha:#086a86; --ha-soft:#dff2f8;
+  --r:12px; --r-sm:8px;
+  /* une seule échelle d'espacements */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  /* tailles de texte (les titres suivent la largeur de l'écran) */
+  --fs-xs:12.5px; --fs-sm:13.5px; --fs-md:15px; --fs-lg:17px; --fs-h2:clamp(21px,1.05rem + .8vw,27px);
+  --tap:44px;                                   /* cible tactile minimale */
+  --ease:cubic-bezier(.2,.7,.2,1); --t:.16s;
+  --top-h:65px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111317; --surface:#181b21; --surface-2:#1f232a; --line:#2a2f38; --line-2:#3a404b;
+    --text:#e7e9ee; --muted:#a3a9b4; --faint:#868d99;
+    --accent:#6f9bff; --accent-soft:#1d2a45; --accent-text:#a9c3ff; --on-accent:#0b1530;
+    --ok:#4cc581; --ok-soft:#17301f; --warn:#e3a43b; --warn-soft:#33270f; --bad:#ef6f6f; --bad-soft:#3a1a1a;
+    --track:#323844; --shadow:none; --shadow-lg:0 12px 40px rgba(0,0,0,.5); color-scheme:dark; --ha:#5cc8e6; --ha-soft:#123039;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111317; --surface:#181b21; --surface-2:#1f232a; --line:#2a2f38; --line-2:#3a404b;
+  --text:#e7e9ee; --muted:#a3a9b4; --faint:#868d99;
+  --accent:#6f9bff; --accent-soft:#1d2a45; --accent-text:#a9c3ff; --on-accent:#0b1530;
+  --ok:#4cc581; --ok-soft:#17301f; --warn:#e3a43b; --warn-soft:#33270f; --bad:#ef6f6f; --bad-soft:#3a1a1a;
+  --track:#323844; --shadow:none; --shadow-lg:0 12px 40px rgba(0,0,0,.5); color-scheme:dark; --ha:#5cc8e6; --ha-soft:#123039;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font:var(--fs-md)/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button,input,select{font:inherit;color:inherit}
+button,a,summary,select,input{-webkit-tap-highlight-color:transparent}
+svg{display:block}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main:focus{outline:none}
+.skip{position:absolute;left:var(--s4);top:-60px;z-index:60;padding:10px 14px;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent);font-weight:600;text-decoration:none}
+.skip:focus{top:var(--s2)}
+
+/* barre du haut */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1240px;margin:0 auto;padding:var(--s3) var(--s5);display:flex;align-items:center;gap:var(--s3);min-height:var(--top-h)}
+.brand{display:flex;align-items:center;gap:var(--s3);min-width:0}
+.brand-mark{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent-text);display:grid;place-items:center;flex:none}
+.brand > div:last-child{min-width:0}
+.brand h1{font-size:16px;margin:0;font-weight:650;white-space:nowrap;line-height:1.3}
+.brand p{margin:0;font-size:var(--fs-sm);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-sec{display:none}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:var(--s2);flex:none}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:var(--fs-sm);font-weight:550;background:var(--surface-2);color:var(--muted);white-space:nowrap;transition:background var(--t),color var(--t)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.info{background:var(--accent-soft);color:var(--accent-text)}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--muted);flex:none;transition:color var(--t),background var(--t),border-color var(--t)}
+.icon-btn:hover{color:var(--text);border-color:var(--line-2)}
+.menu-btn{display:none}
+
+/* mise en page : rubriques à gauche, contenu à largeur de lecture */
+.layout{max-width:1240px;margin:0 auto;padding:var(--s5);display:grid;grid-template-columns:232px minmax(0,1fr);gap:var(--s6) 40px;align-items:start}
+nav.side{position:sticky;top:calc(var(--top-h) + var(--s5));max-height:calc(100vh - var(--top-h) - var(--s6));overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:var(--s4);scrollbar-width:thin}
+.nav-head{display:none}
+.nav-group{display:flex;flex-direction:column;gap:2px}
+.nav-label{padding:0 var(--s3) var(--s1);font-size:var(--fs-xs);font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--faint)}
+nav.side a{display:flex;align-items:center;gap:var(--s3);min-height:40px;padding:8px var(--s3);border-radius:var(--r-sm);color:var(--muted);text-decoration:none;font-weight:550;font-size:14.5px;transition:background var(--t),color var(--t)}
+nav.side a:hover{background:var(--surface-2);color:var(--text)}
+nav.side a[aria-current="page"]{background:var(--accent-soft);color:var(--accent-text)}
+nav.side a svg{flex:none;width:18px;height:18px}
+.side-foot{padding:var(--s3);border-top:1px solid var(--line);font-size:var(--fs-xs);color:var(--faint);line-height:1.45;display:flex;flex-direction:column;gap:var(--s3)}
+.side-foot p{margin:0}
+.scrim{display:none}
+main{min-width:0;max-width:920px}
+main#main{width:100%}
+.sec-head{margin:0 0 var(--s5)}
+.sec-kicker{margin:0 0 var(--s1);font-size:var(--fs-xs);font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-text)}
+.sec-head h2{font-size:var(--fs-h2);line-height:1.2;margin:0 0 6px;font-weight:680;letter-spacing:-.015em}
+.sec-head p{margin:0;color:var(--muted);max-width:62ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card + .card,.card + .expert,.expert + .card{margin-top:var(--s4)}
+.card-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s2) var(--s3);padding:var(--s4) var(--s5) 0;font-size:13px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.card-body{padding:var(--s4) var(--s5) var(--s5)}
+.card-title .badge{text-transform:none;letter-spacing:0}
+
+/* lignes de réglage : une seule forme partout */
+.rows{padding:0 var(--s5)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,280px);gap:var(--s5);align-items:center;padding:var(--s4) 0;border-top:1px solid var(--line)}
+.rows .row:first-child{border-top:0}
+.row-label{font-weight:600}
+.row-help{color:var(--muted);font-size:var(--fs-sm);margin-top:2px;max-width:56ch}
+.row-ctl{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:0}
+.row-ctl .line{display:flex;align-items:center;gap:var(--s3);width:100%;justify-content:flex-end}
+.row.off{opacity:.6}
+.reset{background:none;border:0;padding:2px 0;font-size:var(--fs-xs);font-weight:600;color:var(--accent-text);cursor:pointer;border-radius:4px}
+.reset:hover{text-decoration:underline}
+.reset:disabled{opacity:.5;cursor:default;text-decoration:none}
+.ro{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.ro small{display:block;font-weight:500;color:var(--faint);font-size:12px}
+
+/* interrupteur */
+.sw{position:relative;width:44px;height:26px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.sw input:disabled{cursor:default}
+.sw span{position:absolute;inset:0;border-radius:999px;background:var(--track);transition:background var(--t)}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform var(--t) var(--ease)}
+.sw input:checked + span{background:var(--accent)}
+.sw input:checked + span::after{transform:translateX(18px)}
+.sw input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.sw-state{font-size:var(--fs-sm);color:var(--muted);min-width:44px;text-align:right}
+
+/* curseur */
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0;cursor:pointer;min-width:0}
+input[type=range]:disabled{cursor:default}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:linear-gradient(var(--accent),var(--accent)) 0/var(--p,50%) 100% no-repeat,var(--track)}
+input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--track)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:999px;background:var(--accent)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--accent);margin-top:-6px;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform var(--t)}
+input[type=range]:not(:disabled):hover::-webkit-slider-thumb{transform:scale(1.12)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--accent)}
+.val{flex:none;min-width:74px;text-align:center;padding:3px 8px;border-radius:var(--r-sm);background:var(--surface-2);font-weight:600;font-size:var(--fs-sm);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pair{display:grid;grid-template-columns:auto 1fr;gap:4px var(--s2);align-items:center;width:100%;font-size:13px;color:var(--muted)}
+input[type=time]{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:5px 8px;font-variant-numeric:tabular-nums}
+
+/* réglages d'expert : repliés */
+.expert{border:1px dashed var(--line-2);border-radius:var(--r);background:transparent;transition:background var(--t)}
+.expert > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:var(--s2);min-height:var(--tap);padding:var(--s2) var(--s5);color:var(--muted);font-weight:600;font-size:14px;border-radius:var(--r)}
+.expert > summary:hover{color:var(--text)}
+.expert > summary::-webkit-details-marker{display:none}
+.expert > summary svg{transition:transform var(--t) var(--ease)}
+.expert[open] > summary svg{transform:rotate(90deg)}
+.expert[open]{background:var(--surface);border-style:solid;border-color:var(--line)}
+.expert .rows{padding-bottom:var(--s2)}
+.expert .group{padding:var(--s3) var(--s5) 0;font-size:var(--fs-xs);font-weight:650;text-transform:uppercase;letter-spacing:.04em;color:var(--faint)}
+.expert .group + .rows .row:first-child{border-top:0}
+
+.note{font-size:13px;color:var(--muted);margin-top:var(--s3)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.info{background:var(--accent-soft);color:var(--accent-text)}
+
+/* source : Robot ou Home Assistant (une seule façon, partout) */
+.src{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 7px 1px 5px;border-radius:6px;font-size:11.5px;font-weight:600;line-height:18px;vertical-align:2px;text-transform:none;letter-spacing:0;white-space:nowrap;background:var(--surface-2);color:var(--muted)}
+.src svg{width:12px;height:12px}
+.src.ha{background:var(--ha-soft);color:var(--ha)}
+.legend-src{display:flex;flex-direction:column;gap:var(--s2);margin:0;font-size:var(--fs-xs);color:var(--muted)}
+.legend-src .src{margin-left:0;margin-right:6px}
+.legend-src > span{display:flex;align-items:center;flex-wrap:wrap}
+.ha-link{font-size:13px;font-weight:600;color:var(--ha);text-decoration:none;text-transform:none;letter-spacing:0;white-space:nowrap;border-radius:4px}
+.ha-link:hover{text-decoration:underline}
+
+/* en direct */
+.live{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:var(--s4)}
+.live > div{display:flex;flex-direction:column;gap:var(--s4);min-width:0}
+.live .card{margin:0}
+.cam{position:relative;aspect-ratio:16/9;border-radius:var(--r-sm);overflow:hidden;background:#1a1d23}
+.cam img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam svg.over{position:absolute;inset:0;width:100%;height:100%}
+.cam-empty{position:absolute;inset:0;display:grid;place-items:center;color:#aeb4bf;font-size:14px;text-align:center;padding:var(--s4)}
+.cam-tag{position:absolute;left:10px;top:10px;right:10px;display:flex;gap:6px}
+.cam-tag .badge{background:rgba(0,0,0,.6);color:#fff;white-space:normal}
+.status-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2)}
+.status-item{background:var(--surface-2);border-radius:var(--r-sm);padding:var(--s2) var(--s3);min-width:0}
+.status-item b{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px;font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.status-item b .src{margin-left:0}
+.status-item span{font-weight:600}
+.aware{font-size:var(--fs-lg);line-height:1.5;margin:0}
+.aware-meta{font-size:var(--fs-xs);color:var(--faint);margin-top:var(--s2)}
+.gauges{display:flex;flex-direction:column;gap:var(--s3)}
+.gauge{display:grid;grid-template-columns:64px 1fr 44px;gap:var(--s3);align-items:center;font-size:14px}
+.gauge-bar{position:relative;height:8px;border-radius:999px;background:var(--track)}
+.gauge-bar::before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--faint)}
+.gauge-fill{position:absolute;top:0;bottom:0;border-radius:999px;background:var(--accent);transition:all .8s ease}
+.gauge-fill.neg{background:var(--warn)}
+.gauge-num{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.mood-label{margin-bottom:var(--s3);font-size:16px;font-weight:600}
+.log{list-style:none;margin:0;padding:0;font-size:var(--fs-sm);max-height:248px;overflow:auto}
+.log li{display:grid;grid-template-columns:68px minmax(0,1fr);gap:var(--s3);padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.log li:first-child{border-top:0}
+.log time{color:var(--faint);font-variant-numeric:tabular-nums}
+.compass svg{width:100%;height:auto;max-height:220px}
+.legend{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s4);font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.empty{color:var(--faint);font-size:14px}
+
+/* moteurs */
+.motors{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s2)}
+.motor{background:var(--surface-2);border-radius:var(--r-sm);padding:var(--s2) var(--s3)}
+.motor b{display:block;font-size:12px;color:var(--faint);font-weight:600}
+.motor span{font-weight:650;font-variant-numeric:tabular-nums}
+
+/* rubrique précédente / suivante */
+.pager{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3);margin-top:var(--s6)}
+.pager a{display:flex;flex-direction:column;gap:2px;min-height:56px;justify-content:center;padding:var(--s3) var(--s4);border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--text);text-decoration:none;font-weight:600;transition:border-color var(--t),background var(--t)}
+.pager a:hover{border-color:var(--accent);background:var(--accent-soft)}
+.pager a small{font-size:var(--fs-xs);font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.pager a.next{grid-column:2;text-align:right;align-items:flex-end}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;font-weight:550;transition:opacity .2s,transform .2s var(--ease);max-width:calc(100vw - 32px);z-index:50;box-shadow:var(--shadow-lg)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.section{display:none}
+.section.active{display:block;animation:sec-in .18s var(--ease)}
+@keyframes sec-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+@media (max-width:1100px){ .live{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:860px){
+  :root{--top-h:57px}
+  .top-in{padding:var(--s2) var(--s4);gap:var(--s2)}
+  .menu-btn{display:grid;width:var(--tap);height:var(--tap)}
+  .brand-mark{display:none}
+  .brand h1{font-size:15px}
+  .brand-sub{display:none}
+  .top-sec{display:inline;color:var(--accent-text);font-weight:600}
+  .top-right .icon-btn{width:var(--tap);height:var(--tap)}
+  #save-pill .txt{display:none}
+  #save-pill{padding:8px}
+  #online .lbl{display:none}
+  #online{padding:8px}
+  /* le tiroir des rubriques */
+  .layout{grid-template-columns:minmax(0,1fr);padding:var(--s4) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom));gap:0}
+  nav.side{position:fixed;top:0;bottom:0;left:0;z-index:40;width:min(320px,86vw);max-height:none;padding:var(--s3) var(--s3) calc(var(--s5) + env(safe-area-inset-bottom));gap:var(--s4);background:var(--surface);border-right:1px solid var(--line);box-shadow:var(--shadow-lg);transform:translateX(-102%);visibility:hidden;transition:transform .22s var(--ease),visibility 0s linear .22s}
+  body.nav-open nav.side{transform:none;visibility:visible;transition:transform .22s var(--ease)}
+  body.nav-open{overflow:hidden}
+  .scrim{display:block;position:fixed;inset:0;z-index:35;background:rgba(10,12,16,.5);animation:scrim-in .2s ease}
+  .scrim[hidden]{display:none}
+  @keyframes scrim-in{from{opacity:0}to{opacity:1}}
+  .nav-head{display:flex;align-items:center;justify-content:space-between;padding:0 0 0 var(--s3)}
+  .nav-head b{font-size:16px}
+  .nav-head .icon-btn{width:var(--tap);height:var(--tap)}
+  nav.side a{min-height:var(--tap);font-size:15px}
+  main{max-width:none}
+  .sec-head{margin-bottom:var(--s4)}
+  .row{grid-template-columns:minmax(0,1fr);gap:var(--s3)}
+  .row-ctl{align-items:stretch}
+  .row-ctl .line{justify-content:flex-start;flex-wrap:wrap}
+  .row.row-switch{grid-template-columns:minmax(0,1fr) auto}
+  .row.row-switch .row-ctl{align-items:flex-end}
+  .row.row-switch .sw-state{display:none}
+  .sw input{inset:-9px -6px}
+  input[type=range]{height:var(--tap);flex:1 1 140px}
+  input[type=range]::-webkit-slider-thumb{width:24px;height:24px;margin-top:-9px}
+  input[type=time],select{min-height:var(--tap)}
+  .reset{align-self:flex-start;min-height:var(--tap);display:inline-flex;align-items:center}
+  .ro{text-align:left}
+  .motors{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rows{padding:0 var(--s4)}
+  .card-title{padding:var(--s4) var(--s4) 0}
+  .card-body{padding:var(--s3) var(--s4) var(--s4)}
+  .expert > summary,.expert .group{padding-left:var(--s4);padding-right:var(--s4)}
+  .pager{margin-top:var(--s5)}
+  .ha-link{display:inline-flex;align-items:center;min-height:var(--tap)}
+}
+@media (max-width:420px){ .gauge{grid-template-columns:56px 1fr 44px} }
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main" data-skip>Aller au contenu</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu-btn" id="menu" type="button" aria-label="Ouvrir les rubriques" aria-expanded="false" aria-controls="nav">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 5 7 2M15 5l2-3"/><rect x="4" y="6" width="16" height="11" rx="5"/><circle cx="9.5" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14.5" cy="11.5" r="1.4" fill="currentColor"/><path d="M8 21h8"/></svg>
+      </div>
+      <div><h1>Réglages du robot</h1><p><span class="brand-sub">Reachy Mini · servi par son corps</span><span class="top-sec" id="top-sec"></span></p></div>
+    </div>
+    <div class="top-right">
+      <span class="pill" id="online" role="status"><span class="dot"></span><span class="lbl">…</span></span>
+      <span class="pill" id="save-pill" aria-live="polite"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span class="txt">Tout est enregistré</span></span>
+      <button class="icon-btn" id="theme" type="button" title="Thème clair ou sombre" aria-label="Changer de thème">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<div class="layout">
+  <div class="scrim" id="scrim" hidden></div>
+  <nav class="side" id="nav" aria-label="Rubriques"></nav>
+  <main id="main" tabindex="-1"><p class="empty">Chargement…</p></main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<!-- ASSISTANTS : début -->
+<!-- Lot 4 : les assistants de calibrage pas à pas (spec § 4 bis). Tout ce qui les concerne est ICI : leur style
+     (préfixe asst-), leur fenêtre, leur script. La page n'y touche que par l'appel `asstMonter()` de render(). -->
+<style>
+.asst-calib{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--s4);align-items:center}
+.asst-calib h3{margin:0 0 4px;font-size:15px;font-weight:650}
+.asst-calib p{margin:0;color:var(--muted);font-size:13.5px}
+.asst-calib dl{display:grid;grid-template-columns:auto 1fr;gap:4px var(--s3);margin:var(--s3) 0 0;font-size:13px}
+.asst-calib dt{color:var(--faint);font-weight:600}
+.asst-calib dd{margin:0;color:var(--muted)}
+.asst-why{margin-top:var(--s2);font-size:13px;color:var(--warn)}
+.asst-btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);padding:9px 16px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);color:var(--text);font-weight:600;cursor:pointer;white-space:nowrap}
+.asst-btn:hover:not(:disabled){background:var(--surface-2)}
+.asst-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.asst-btn.primary:hover:not(:disabled){background:var(--accent);filter:brightness(1.08)}
+.asst-btn:disabled{opacity:.45;cursor:default}
+.asst-btn:focus-visible,.asst-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.asst-dlg{padding:0;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--text);width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.28)}
+.asst-dlg::backdrop{background:rgba(10,12,16,.55)}
+.asst-wz{padding:var(--s5);display:flex;flex-direction:column;gap:var(--s4)}
+.asst-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s3)}
+.asst-head h3{margin:0;font-size:18px}
+.asst-head p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.asst-steps{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px}
+.asst-steps i{height:4px;border-radius:999px;background:var(--track)}
+.asst-steps i.done{background:var(--accent)}
+.asst-steps i.now{background:var(--accent);opacity:.5}
+.asst-kicker{font-size:12.5px;font-weight:650;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.asst-say{font-size:17px;line-height:1.45;margin:4px 0 0}
+.asst-measure{background:var(--surface-2);border-radius:var(--r-sm);padding:var(--s3) var(--s4)}
+.asst-top{display:flex;justify-content:space-between;align-items:center;gap:var(--s3);margin-bottom:var(--s2);font-size:12.5px;font-weight:650;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.asst-bar{height:6px;border-radius:999px;background:var(--track);overflow:hidden}
+.asst-bar b{display:block;height:100%;width:0;background:var(--accent);transition:width .4s linear}
+.asst-value{margin-top:var(--s2);font-weight:600;font-variant-numeric:tabular-nums;min-height:1.5em}
+.asst-alert{margin-top:var(--s2);font-size:13.5px;color:var(--warn)}
+.asst-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2)}
+.asst-foot .asst-gap{flex:1}
+.asst-link{background:none;border:0;padding:8px 4px;color:var(--muted);font-weight:600;cursor:pointer}
+.asst-link:hover{color:var(--text)}
+.asst-table{width:100%;border-collapse:collapse;font-size:14px}
+.asst-table th{text-align:left;font-size:12px;font-weight:650;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;padding:0 0 6px}
+.asst-table td{padding:8px 0;border-top:1px solid var(--line);vertical-align:top}
+.asst-table td + td,.asst-table th + th{text-align:right;padding-left:var(--s3);white-space:nowrap}
+.asst-table .same{color:var(--faint)}
+.asst-table .new{font-weight:650;color:var(--accent-text)}
+.asst-box{border-radius:var(--r-sm);padding:var(--s3) var(--s4);font-size:14px}
+.asst-box.warn{background:var(--warn-soft)}
+.asst-box.warn b{color:var(--warn)}
+.asst-box.ok{background:var(--ok-soft)}
+.asst-box.ok b{color:var(--ok)}
+.asst-box.bad{background:var(--bad-soft)}
+.asst-box.bad b{color:var(--bad)}
+.asst-writes{font-size:13px;color:var(--muted);margin:0;padding-left:18px}
+.asst-writes li{margin:2px 0}
+.asst-small{font-size:12.5px;color:var(--faint)}
+.asst-btn,.asst-link{transition:background var(--t),color var(--t),filter var(--t)}
+@media (max-width:860px){
+  .asst-btn,.asst-link{min-height:var(--tap)}
+  .asst-calib{grid-template-columns:minmax(0,1fr)}
+  .asst-calib .asst-btn{width:100%}
+  .asst-dlg{width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;border-radius:0;border:0}
+  .asst-wz{min-height:100%}
+  .asst-foot .asst-btn{flex:1}
+  .asst-foot .asst-gap{display:none}
+}
+</style>
+<dialog class="asst-dlg" id="asst-dlg" aria-labelledby="asst-titre"><div class="asst-wz" id="asst-body"></div></dialog>
+<script>
+'use strict';
+const ASST = {cat: null, repris: false, vue: '', timer: null};
+async function asstApi(chemin, corps){
+  const options = corps === undefined ? {cache:'no-store'} : {method:'POST', cache:'no-store',
+    headers:{'Content-Type':'application/json', 'X-Reachy-Jeton': JETON}, body: JSON.stringify(corps)};
+  const r = await fetch(chemin, options);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(perimee(r, data) || data.erreur || ('erreur ' + r.status));
+  return data;
+}
+function asstCarte(a){
+  const pret = a.disponible;
+  return `<div class="card" data-asst-card="${esc(a.id)}"><div class="card-title"><span>Calibrage${src()}</span></div><div class="card-body"><div class="asst-calib"><div>
+    <h3>${esc(a.titre)}</h3><p>${esc(a.intro)}</p>
+    <dl><dt>Mesure</dt><dd>${esc(a.mesure)}</dd><dt>Écrit</dt><dd>${esc(a.ecrit)}</dd></dl>
+    ${pret ? '' : `<div class="asst-why">Indisponible : ${esc(a.raison)}.</div>`}</div>
+    <div><button class="asst-btn primary" data-asst="${esc(a.id)}" ${pret ? '' : 'disabled'}>Lancer l'assistant</button></div></div></div></div>`;
+}
+/* Les cartes se glissent dans leur rubrique : après les réglages essentiels (Voir, Toucher), à la fin (Pièce). */
+async function asstMonter(){
+  if (!ASST.cat){
+    try { ASST.cat = (await asstApi('/api/assistants')).assistants; } catch (_) { return; }
+  }
+  for (const a of ASST.cat){
+    const section = document.getElementById('sec-' + a.rubrique);
+    if (!section) continue;
+    section.querySelector(`[data-asst-card="${a.id}"]`)?.remove();
+    const premiere = section.querySelector(':scope > .card');
+    if (a.rubrique === 'piece' || !premiere) section.insertAdjacentHTML('beforeend', asstCarte(a));
+    else premiere.insertAdjacentHTML('afterend', asstCarte(a));
+  }
+  if (!ASST.repris){            // page rechargée pendant un assistant : on le retrouve
+    ASST.repris = true;
+    try {
+      const {session} = await asstApi('/api/assistants/session');
+      if (session && ['preparation', 'mesure', 'resultat'].includes(session.etat)) asstOuvrir(session);
+    } catch (_) {}
+  }
+}
+const asstNb = s => s.etapes.length;
+function asstEntete(s){
+  const fini = s.etat !== 'preparation' && s.etat !== 'mesure';
+  const lieu = {voir:'Voir', toucher:'Toucher', piece:'Pièce'}[s.rubrique] || s.rubrique;
+  const barre = [...s.etapes, 0].map((_, i) => `<i class="${fini || i < s.etape ? 'done' : i === s.etape ? 'now' : ''}"></i>`).join('');
+  const place = s.etat === 'resultat' || s.etat === 'applique' ? 'Résultat' : s.etat === 'mesure' ? `Étape ${s.etape + 1} sur ${asstNb(s)}` : 'Préparation';
+  return `<div class="asst-head"><div><h3 id="asst-titre">${esc(s.titre)}</h3><p>${place} · lancé depuis ${lieu}</p></div>${src()}</div><div class="asst-steps">${barre}</div>`;
+}
+function asstCorps(s){
+  const tete = asstEntete(s);
+  if (s.etat === 'preparation')
+    return tete + `<p class="asst-say">Le robot finit son mouvement, puis ne bougera plus de lui-même pendant la mesure…</p>
+      <div class="asst-foot"><button class="asst-link" data-act="annuler">Annuler</button></div>`;
+  if (s.etat === 'mesure')
+    return tete + `<div><div class="asst-kicker">Consigne</div><p class="asst-say">${esc(s.etapes[s.etape])}</p></div>
+      <div class="asst-measure"><div class="asst-top"><span>Mesure en direct</span><span class="badge info" id="asst-badge">en cours</span></div>
+        <div class="asst-bar"><b id="asst-barre"></b></div><div class="asst-value" id="asst-valeur">…</div><div class="asst-alert" id="asst-alerte" hidden></div></div>
+      <div class="asst-foot"><button class="asst-link" data-act="annuler">Annuler</button><span class="asst-gap"></span>
+        <button class="asst-btn" data-act="recommencer">Recommencer l'étape</button>
+        <button class="asst-btn primary" data-act="suivant" id="asst-suivant" disabled>C'est fait</button></div>
+      <div class="asst-small" id="asst-reste"></div>`;
+  if (s.etat === 'resultat' || s.etat === 'applique'){
+    const r = s.resultat, applique = s.etat === 'applique';
+    const change = r.lignes.some(l => l.change);
+    const lignes = r.lignes.map(l => `<tr><td>${esc(l.libelle)}</td><td class="same">${esc(l.actuel)}</td><td class="${l.change ? 'new' : 'same'}">${esc(l.propose)}</td></tr>`).join('');
+    const ecrit = r.ecrit.map(t => `<li>${esc(t)} ${src()}</li>`).join('');
+    const bas = applique
+      ? `<div class="asst-box ok"><b>Appliqué.</b><br>${s.ecrit.length ? 'Une sauvegarde de vivant.json a été faite, puis les réglages ont été appliqués sans redémarrer. « Valeur d\'origine » reste possible dans la rubrique.' : 'Rien n\'avait besoin de changer.'}</div>
+         <div class="asst-foot"><span class="asst-gap"></span><button class="asst-btn primary" data-act="fermer">Fermer</button></div>`
+      : `<div class="asst-foot"><button class="asst-link" data-act="annuler">Annuler</button><span class="asst-gap"></span>
+           <button class="asst-btn" data-act="tout">Tout recommencer</button>
+           <button class="asst-btn primary" data-act="appliquer">${change ? 'Appliquer' : 'Terminer'}</button></div>
+         <div class="asst-small">« Appliquer » fait d'abord une sauvegarde ; « Valeur d'origine » reste possible ensuite.</div>`;
+    return tete + `<div class="asst-box ${r.ton}"><b>${esc(r.titre)}</b><br>${esc(r.texte)}</div>
+      <table class="asst-table"><thead><tr><th>Réglage</th><th>Actuel</th><th>Proposé</th></tr></thead><tbody>${lignes}</tbody></table>
+      <div><div class="asst-kicker">${applique ? 'Écrit' : 'Sera écrit'}</div><ul class="asst-writes">${ecrit}</ul></div>` + bas;
+  }
+  const dit = s.etat === 'interrompue' ? 'La mesure a été interrompue.' : 'Assistant fermé.';
+  return `<div class="asst-head"><div><h3 id="asst-titre">${esc(s.titre)}</h3><p>${dit}</p></div></div>
+    <div class="asst-box warn"><b>${dit}</b><br>${esc(s.raison || 'Rien n\'a été changé.')} Rien n'a été changé.</div>
+    <div class="asst-foot"><span class="asst-gap"></span><button class="asst-btn" data-act="fermer">Fermer</button><button class="asst-btn primary" data-act="tout">Recommencer</button></div>`;
+}
+function asstPeindre(s){
+  const dlg = document.getElementById('asst-dlg');
+  if (!s || s.etat === 'annule'){ asstFermer(false); return; }
+  const cle = s.etat + ':' + s.etape;
+  if (cle !== ASST.vue){ ASST.vue = cle; document.getElementById('asst-body').innerHTML = asstCorps(s); }
+  if (s.etat === 'mesure' && s.mesure){
+    const m = s.mesure, badge = document.getElementById('asst-badge');
+    badge.className = 'badge ' + (m.suffisante ? 'ok' : 'info');
+    badge.textContent = m.suffisante ? 'mesure suffisante' : 'en cours';
+    document.getElementById('asst-barre').style.width = Math.round(m.progres * 100) + '%';
+    document.getElementById('asst-valeur').textContent = m.texte;
+    const alerte = document.getElementById('asst-alerte');
+    alerte.hidden = !m.alerte; alerte.textContent = m.alerte;
+    document.getElementById('asst-suivant').disabled = !m.suffisante;
+    document.getElementById('asst-reste').textContent = s.reste === null ? '' : `Le robot ne bouge pas de lui-même pendant la mesure ; il reprend seul dans ${s.reste} s au plus.`;
+  }
+  if (!dlg.open) dlg.showModal();
+}
+function asstSuivre(){
+  clearInterval(ASST.timer);
+  ASST.timer = setInterval(async () => {
+    try { asstPeindre((await asstApi('/api/assistants/session')).session); } catch (_) {}
+  }, 500);
+}
+function asstOuvrir(s){ ASST.vue = ''; asstPeindre(s); asstSuivre(); }
+function asstFermer(prevenir){
+  clearInterval(ASST.timer); ASST.vue = '';
+  const dlg = document.getElementById('asst-dlg');
+  if (dlg.open) dlg.close();
+  if (prevenir) toast('Calibrage annulé : rien n\'a été changé');
+}
+async function asstLancer(id){
+  try { asstOuvrir((await asstApi('/api/assistants/lancer', {assistant: id})).session); }
+  catch (err) { toast(err.message); }
+}
+async function asstAction(act){
+  try {
+    if (act === 'fermer'){ asstFermer(false); return; }
+    if (act === 'annuler'){ await asstApi('/api/assistants/annuler', {}); asstFermer(true); return; }
+    const route = {recommencer:'recommencer', suivant:'suivant', appliquer:'appliquer', tout:'recommencer'}[act];
+    const {session} = await asstApi('/api/assistants/' + route, {});
+    ASST.vue = '';
+    asstPeindre(session);
+    if (act === 'appliquer'){
+      pill('ok', 'Enregistré');
+      toast(`${session.titre} — enregistré et appliqué, sans redémarrer`);
+      setTimeout(() => pill('', 'Tout est enregistré'), 2500);
+      try { R = await (await fetch('/api/reglages', {cache:'no-store'})).json(); render(); } catch (_) {}   // les réglages ont changé
+    }
+  } catch (err) { toast(err.message); }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.asst) asstLancer(b.dataset.asst);
+  else if (b.dataset.act && b.closest('#asst-dlg')) asstAction(b.dataset.act);
+});
+/* Échap = Annuler : la mesure s'arrête et le robot reprend sa vie. */
+document.getElementById('asst-dlg').addEventListener('cancel', e => { e.preventDefault(); asstAction('annuler'); });
+</script>
+<!-- ASSISTANTS : fin -->
+
+<!-- PERSONNES : début (lot 5, 11/10/2026) : la rubrique Personnes. Préfixe pers-. Logique : reachy_personnes.py -->
+<style>
+.pers-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s4)}
+.pers-grid .card{margin:0}
+.pers-card{padding:var(--s5)}
+.pers-facts code{font-size:12px;overflow-wrap:anywhere}
+.pers-head{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4)}
+.pers-avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--accent-soft);color:var(--accent-text);flex:none}
+.pers-head h3{margin:0;font-size:16px}
+.pers-head p{margin:0;font-size:13px;color:var(--muted)}
+.pers-head .pers-btn{margin-left:auto}
+.pers-facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px var(--s4);font-size:14px;margin:0 0 var(--s4)}
+.pers-facts dt{color:var(--muted)}
+.pers-facts dd{margin:0;text-align:right;font-weight:550;min-width:0;overflow-wrap:anywhere}
+.pers-facts small{display:block;color:var(--faint);font-weight:500;font-size:12px}
+.pers-btns{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.pers-card .pers-btns .pers-btn{flex:1 1 0;justify-content:center}
+.pers-btn{display:inline-flex;align-items:center;gap:var(--s2);padding:8px 14px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14px;cursor:pointer}
+.pers-btn:hover{background:var(--surface-2)}
+.pers-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.pers-btn.primary:hover{filter:brightness(1.06)}
+.pers-btn.danger{color:var(--bad)}
+.pers-btn.danger:hover{background:var(--bad-soft)}
+.pers-btn:disabled{opacity:.55;cursor:default}
+.pers-btn:focus-visible,.pers-dlg input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pers-link{background:none;border:0;padding:0;font-size:12.5px;color:var(--accent-text);cursor:pointer}
+.pers-more{display:flex;gap:var(--s3);align-items:center;flex-wrap:wrap;margin-top:var(--s4)}
+dialog.pers-dlg{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--text);padding:0;max-width:460px;width:calc(100vw - 32px)}
+dialog.pers-dlg::backdrop{background:rgba(0,0,0,.45)}
+.pers-dlg .in{padding:var(--s5);display:flex;flex-direction:column;gap:var(--s3)}
+.pers-dlg h3{margin:0;font-size:18px}
+.pers-dlg p,.pers-dlg ul{margin:0;color:var(--muted)}
+.pers-dlg ul{padding-left:20px}
+.pers-dlg .kick{font-size:12.5px;font-weight:650;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.pers-dlg .acts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--s2);margin-top:var(--s2)}
+.pers-dlg label.chk{display:flex;gap:var(--s3);align-items:flex-start;color:var(--text);cursor:pointer}
+.pers-dlg label.chk input{width:18px;height:18px;margin-top:3px;accent-color:var(--accent)}
+.pers-dlg label.fld{display:flex;flex-direction:column;gap:6px;color:var(--text);font-weight:600;font-size:14px}
+.pers-dlg input[type=text]{padding:8px 10px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface-2);font-weight:500}
+.pers-dlg .box{border-radius:var(--r-sm);padding:var(--s3) var(--s4);font-size:14px}
+.pers-dlg .box.ok{background:var(--ok-soft);color:var(--text)}
+.pers-dlg .box.warn{background:var(--warn-soft);color:var(--text)}
+.pers-dlg .box.bad{background:var(--bad-soft);color:var(--text)}
+.pers-bar{height:6px;border-radius:999px;background:var(--track);overflow:hidden}
+.pers-bar b{display:block;height:100%;width:0;background:var(--accent);transition:width .4s linear}
+#pers-root + .card{margin-top:var(--s5)}
+.pers-btn{transition:background var(--t),filter var(--t),border-color var(--t)}
+.pers-btn:hover:not(:disabled){border-color:var(--line-2)}
+.pers-link{border-radius:4px}
+@media (max-width:860px){
+  .pers-btn{min-height:var(--tap);justify-content:center}
+  .pers-link{min-height:var(--tap)}
+  .pers-dlg input[type=text]{min-height:var(--tap)}
+  .pers-more .pers-btn{flex:1 1 100%}
+  .pers-grid{grid-template-columns:minmax(0,1fr)}
+  .pers-card{padding:var(--s4)}
+  .pers-facts{grid-template-columns:minmax(0,1fr);gap:0}
+  .pers-facts dt{margin-top:var(--s2)}
+  .pers-facts dd{text-align:left}
+  dialog.pers-dlg{max-width:none;width:100vw;height:100dvh;max-height:none;margin:0;border-radius:0;border:0}
+  .pers-dlg .acts .pers-btn{flex:1;justify-content:center}
+}
+</style>
+<script>
+'use strict';
+/* Les fiches viennent de GET /api/personnes ; les gestes passent par POST (même jeton que les réglages). */
+let P = null;                 // {personnes, dossiers, camera, ecriture, tache}
+let persTimer = null;
+const persDate = iso => { try { return new Date(iso).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'}); } catch (_) { return ''; } };
+const persHeure = iso => { try { return new Date(iso).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}); } catch (_) { return ''; } };
+async function persPost(chemin, corps){
+  const r = await fetch('/api/personnes/' + chemin, {method:'POST', cache:'no-store',
+    headers:{'Content-Type':'application/json', 'X-Reachy-Jeton': JETON}, body: JSON.stringify(corps)});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(perimee(r, data) || data.erreur || ('erreur ' + r.status));
+  return data;
+}
+async function persCharger(){
+  const racine = document.getElementById('pers-root');
+  if (!racine) return;
+  try {
+    const r = await fetch('/api/personnes', {cache:'no-store'});
+    if (!r.ok) throw new Error();
+    P = await r.json();
+  } catch (_) {
+    racine.innerHTML = '<p class="empty">Le robot ne répond pas. Réessayer dans un instant.</p>';
+    return;
+  }
+  racine.innerHTML = persFiches();
+}
+const persBadge = (ok, oui, non) => ok ? `<span class="badge ok">${esc(oui)}</span>` : `<span class="badge">${esc(non)}</span>`;
+function persFiche(p){
+  const v = p.visage, x = p.voix, av = p.accord.visage, ax = p.accord.voix;
+  const nbV = v && v.nombre ? `${v.nombre} vues` : 'enregistré';
+  const nbX = x && x.nombre ? `${x.nombre} phrases` : 'enregistrée';
+  const accord = (a, existe, nom) => a ? `<span class="badge ok">${esc(persDate(a.le))}</span><small>donné par ${esc(a.par)}${a.apres_coup ? ' · noté après coup' : ''}</small>`
+    : existe ? `<span class="badge warn">non noté</span><small><button class="pers-link" data-pers-accord="${p.nom}" data-genre="${nom}">Noter l'accord</button></small>` : '<span class="badge">—</span>';
+  const connu = v || x;
+  const ha = (e, lien) => `<code>${esc(e)}</code><small>à lire dans Home Assistant${R.ha ? ` · <a class="ha-link" href="${esc(R.ha + lien)}" target="_blank" rel="noopener">ouvrir ↗</a>` : ''}</small>`;
+  const nom = esc(p.affiche);
+  return `<div class="card pers-card" data-pers="${p.nom}">
+    <div class="pers-head"><div class="pers-avatar">${esc(p.affiche[0])}</div><div><h3>${nom}</h3><p>${connu ? 'Reconnu·e par le robot' : 'Rien d\'enregistré'}</p></div>${connu ? `<button class="pers-btn danger" data-pers-oublier="${p.nom}">Oublier</button>` : ''}</div>
+    <dl class="pers-facts">
+      <dt>Visage${src()}</dt><dd>${persBadge(v, nbV, 'non enregistré')}${v ? `<small>le ${esc(persDate(v.le))}</small>` : ''}</dd>
+      <dt>Accord (visage)${src()}</dt><dd>${accord(av, v, 'visage')}</dd>
+      <dt>Voix${src()}</dt><dd>${persBadge(x, nbX, 'non enregistrée')}${x ? `<small>le ${esc(persDate(x.le))}</small>` : ''}</dd>
+      <dt>Accord (voix)${src()}</dt><dd>${accord(ax, x, 'voix')}</dd>
+      <dt>Souvenirs${src('ha')}</dt><dd>${ha(p.ha.souvenirs, '/todo')}</dd>
+      <dt>Dernier accueil${src('ha')}</dt><dd>${ha(p.ha.accueil, '/config/helpers')}</dd>
+    </dl>
+    <div class="pers-btns">
+      <button class="pers-btn" data-pers-apprendre="${p.nom}">${v ? 'Visage : une séance de plus' : 'Apprendre le visage'}</button>
+      <button class="pers-btn" data-pers-apprendre="${p.nom}">${x ? 'Voix : une séance de plus' : 'Apprendre la voix'}</button>
+    </div></div>`;
+}
+function persFiches(){
+  const manque = !P.dossiers.visage ? 'Aucun dossier de visages dans les réglages du corps : on ne peut pas enregistrer de visage.' : !P.camera ? 'Aucune caméra dans les réglages du corps : on ne peut pas enregistrer de visage.' : '';
+  return (P.personnes.length ? `<div class="pers-grid">${P.personnes.map(persFiche).join('')}</div>` : '<div class="card"><div class="card-body"><p class="empty" style="margin:0">Personne n\'est encore enregistré·e.</p></div></div>')
+    + `<div class="pers-more"><button class="pers-btn primary" data-pers-apprendre="">Ajouter une personne</button><span class="note" style="margin:0">${esc(manque)}</span></div>
+    <div class="note">Seules des empreintes (des nombres) sont gardées, jamais de photo ni d'enregistrement. Elles ne servent jamais à autoriser une action. Visage et voix s'apprennent dans la rubrique <b>Apprentissage</b>.</div>`;
+}
+function personnesVue(){
+  setTimeout(persCharger, 0);
+  return `<div id="pers-root"><p class="empty">Chargement…</p></div>`;
+}
+
+/* ---------- la fenêtre ---------- */
+function persDialogue(html){
+  let d = document.getElementById('pers-dlg');
+  if (!d){ d = document.createElement('dialog'); d.id = 'pers-dlg'; d.className = 'pers-dlg'; d.setAttribute('aria-label', 'Personnes'); document.body.appendChild(d);
+    d.addEventListener('close', () => { clearInterval(persTimer); persCharger(); }); }
+  d.innerHTML = `<div class="in">${html}</div>`;
+  if (!d.open) d.showModal();
+  return d;
+}
+const persFermer = () => document.getElementById('pers-dlg')?.close();
+const persNom = n => n.charAt(0).toUpperCase() + n.slice(1);
+
+function persOublier(nom){
+  const aff = persNom(nom), p = P.personnes.find(x => x.nom === nom);
+  const liste = [p.visage && 'l\'empreinte de son visage', p.voix && 'l\'empreinte de sa voix', (p.accord.visage || p.accord.voix) && 'l\'accord noté'].filter(Boolean);
+  const d = persDialogue(`<h3>Oublier ${esc(aff)} ?</h3><p>Le robot ne reconnaîtra plus ${esc(aff)}. Ce qui sera effacé, <b>pour de bon</b> (aucune copie) :</p>
+    <ul>${liste.map(x => `<li>${x}${src()}</li>`).join('')}</ul>
+    <p>Ce qui reste dans Home Assistant (la liste « Mémoire de ${esc(aff)} » et la date de son dernier accueil${src('ha')}) ne s'efface pas d'ici.</p>
+    <label class="fld">Pour confirmer, retaper le prénom<input type="text" id="pers-conf" autocomplete="off" placeholder="${esc(nom)}"></label>
+    <div class="box bad" id="pers-err" hidden></div>
+    <div class="acts"><button class="pers-btn" data-pers-annuler>Annuler</button><button class="pers-btn danger" id="pers-del" disabled>Oublier ${esc(aff)}</button></div>`);
+  const champ = d.querySelector('#pers-conf'), bouton = d.querySelector('#pers-del');
+  champ.oninput = () => { bouton.disabled = champ.value.trim().toLowerCase() !== nom; };
+  bouton.onclick = async () => {
+    bouton.disabled = true;
+    try { await persPost('oublier', {nom, confirme: nom}); persFermer(); toast(`${aff} oublié·e — effacé pour de bon`); }
+    catch (err){ const e = d.querySelector('#pers-err'); e.hidden = false; e.textContent = err.message; bouton.disabled = false; }
+  };
+}
+function persAccord(nom, genre){
+  const aff = persNom(nom);
+  const d = persDialogue(`<h3>Noter l'accord de ${esc(aff)}</h3><p>L'empreinte de ${genre === 'voix' ? 'sa voix' : 'son visage'} existe déjà, mais aucun accord n'avait été noté. Il sera daté d'aujourd'hui et marqué « noté après coup ».</p>
+    <label class="chk"><input type="checkbox" id="pers-ok"><span>${esc(aff)} est d'accord pour que le robot garde cette empreinte.</span></label>
+    <label class="fld">Accord donné par<input type="text" id="pers-par" maxlength="60" value="${esc(aff)}"></label>
+    <div class="box bad" id="pers-err" hidden></div>
+    <div class="acts"><button class="pers-btn" data-pers-annuler>Annuler</button><button class="pers-btn primary" id="pers-go" disabled>Noter l'accord</button></div>`);
+  const ok = d.querySelector('#pers-ok'), go = d.querySelector('#pers-go');
+  ok.onchange = () => { go.disabled = !ok.checked; };
+  go.onclick = async () => {
+    go.disabled = true;
+    try { await persPost('accord', {nom, genre, par: d.querySelector('#pers-par').value}); persFermer(); toast('Accord noté'); }
+    catch (err){ const e = d.querySelector('#pers-err'); e.hidden = false; e.textContent = err.message; go.disabled = false; }
+  };
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button,a'); if (!b) return;
+  if (b.dataset.nav === 'personnes') persCharger();
+  else if ('persApprendre' in b.dataset){ apprNom = b.dataset.persApprendre || null; history.replaceState(null, '', '#apprendre'); show('apprendre'); window.scrollTo({top:0}); apprCharger(); }
+  else if (b.dataset.persOublier) persOublier(b.dataset.persOublier);
+  else if (b.dataset.persAccord) persAccord(b.dataset.persAccord, b.dataset.genre);
+  else if ('persAnnuler' in b.dataset) persFermer();
+});
+</script>
+<!-- PERSONNES : fin -->
+<!-- PARLER : début (11/10/2026) : le volume de sa voix, ses quatre étages, un essai. Préfixe parl-. Logique : reachy_son.py. -->
+<style>
+.parl-chain{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s2);align-items:stretch}
+.parl-stage{background:var(--surface-2);border-radius:var(--r-sm);padding:var(--s3)}
+.parl-stage b{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.parl-stage .parl-big{font-size:22px;font-weight:680;font-variant-numeric:tabular-nums;margin-top:2px}
+.parl-stage small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.parl-stage.parl-res{background:var(--accent-soft)}
+.parl-stage.parl-res .parl-big{color:var(--accent-text)}
+.parl-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:var(--r-sm);border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-weight:600;cursor:pointer}
+.parl-btn:disabled{opacity:.55;cursor:default}
+select.choix{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 10px;min-width:180px;color:var(--text)}
+select.choix:disabled{opacity:.55}
+.line [data-parl-ecouter],.line [data-parl-voir]{margin-left:var(--s2)}
+#parl-root + .card{margin-top:var(--s4)}
+@media (max-width:860px){.parl-chain{grid-template-columns:repeat(2,minmax(0,1fr))} .parl-btn{min-height:var(--tap)} select.choix{min-width:0;flex:1 1 180px}}
+</style>
+<script>
+'use strict';
+let PARL = null, parlBusy = false;
+const parlPct = v => (v === null || v === undefined) ? '—' : Math.round(v * 100) + ' %';
+function parlerVue(){
+  setTimeout(eveiLit, 0);
+  return `<div id="parl-root"><p class="empty">Lecture du son…</p></div><div id="evei-root"></div>` + settings('parler');
+}
+function parlCorps(){
+  const v = PARL;
+  if (!v) return '<p class="empty">Lecture du son…</p>';
+  if (!v.disponible) return card('Sa voix', '<p class="empty" style="margin:0">Le volume ne se règle pas sur cette machine.</p>');
+  const hp = v.haut_parleur || {}, bas = hp.niveau !== null && hp.niveau !== undefined && hp.niveau < 100;
+  const soir = v.manuel ? 'changé à la main ce soir' : ({normal:'pas maintenant', doux:'pièce calme', chuchote:'pièce très calme'})[v.cran] || v.cran;
+  const etat = bas ? '<span class="badge warn">haut-parleur bas</span>' : (v.cran !== 'normal' ? '<span class="badge info">voix du soir</span>' : '<span class="badge ok">son normal</span>');
+  const remis = hp.remis ? `remis à 100 % à ${esc(hp.remis)} (retombé à ${hp.retombe} %)` : (hp.garde ? 'gardé à 100 %' : 'garde coupée');
+  const enreg = v.enregistre !== null && v.enregistre !== undefined && v.enregistre < 0 ? ` · ${v.enregistre} dB au rebranchement` : '';
+  return card('En ce moment', `<div class="parl-chain">
+      <div class="parl-stage"><b>Volume de sa voix</b><div class="parl-big">${parlPct(v.normal)}</div><small>ton réglage</small></div>
+      <div class="parl-stage"><b>Voix du soir</b><div class="parl-big">× ${String(v.facteur).replace('.', ',')}</div><small>${esc(soir)}</small></div>
+      <div class="parl-stage"><b>Haut-parleur${hp.garde ? ' <span class="badge ok">gardé</span>' : ''}</b><div class="parl-big">${hp.niveau ?? '—'} %</div><small>${remis}${enreg}</small></div>
+      <div class="parl-stage parl-res"><b>Il parle à</b><div class="parl-big">${parlPct(v.applique)}</div><small>volume réellement appliqué</small></div>
+    </div><p class="note">Le soir, dans une pièce calme, « Voix du soir » baisse le résultat. Si le haut-parleur retombe (quand le robot est rebranché), le robot le remet à 100 % dans la minute et l'écrit dans son journal.</p>`, etat)
+  + `<div class="card"><div class="card-title"><span>Sa voix${src()}</span></div><div class="rows">
+      <div class="row"><div><div class="row-label">Volume de sa voix</div><div class="row-help">Le volume du jour. La voix du soir part de là. Un changement fait ailleurs (Home Assistant, clavier) devient aussi le nouveau volume et s'affiche ici.</div></div>
+        <div class="row-ctl"><div class="line"><input type="range" id="parl-vol" min="${Math.round(v.min*100)}" max="${Math.round(v.max*100)}" step="5" value="${Math.round(v.normal*100)}" style="--p:${(v.normal-v.min)/(v.max-v.min)*100}%" ${R.ecriture ? '' : 'disabled'} aria-label="Volume de sa voix"><span class="val" id="parl-val">${parlPct(v.normal)}</span></div>
+        ${v.normal < 1 && R.ecriture ? '<button class="reset" data-parl-max>Revenir à 100 %</button>' : ''}</div></div>
+      <div class="row"><div><div class="row-label">Essayer</div><div class="row-help">Il dit une courte phrase au volume ci-dessus. Pas le soir, ni pendant une conversation, ni s'il dort.</div></div>
+        <div class="row-ctl"><div class="line"><button class="parl-btn" data-parl-essai ${R.ecriture ? '' : 'disabled'}>${ico('parler',16)}Essayer le son</button></div></div></div>
+    </div></div>`;
+}
+async function parlLit(){
+  if (parlBusy || document.hidden) return;
+  parlBusy = true;
+  try { const r = await fetch('/api/son', {cache:'no-store'}); if (r.ok) PARL = await r.json(); } catch (_) { /* le corps ne répond pas : on garde la dernière lecture */ }
+  parlBusy = false;
+  const racine = document.getElementById('parl-root');
+  if (racine && !(document.activeElement && document.activeElement.id === 'parl-vol')) racine.innerHTML = parlCorps();
+}
+async function parlPost(chemin, corps){
+  const r = await fetch('/api/son/' + chemin, {method:'POST', cache:'no-store',
+    headers:{'Content-Type':'application/json', 'X-Reachy-Jeton': JETON}, body: JSON.stringify(corps || {})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(perimee(r, data) || data.erreur || ('erreur ' + r.status));
+  return data;
+}
+async function parlVolume(normal){
+  try { PARL = await parlPost('volume', {normal}); toast('Volume de sa voix : ' + parlPct(PARL.normal)); }
+  catch (err){ toast(err.message); }
+  const racine = document.getElementById('parl-root'); if (racine) racine.innerHTML = parlCorps();
+}
+document.addEventListener('input', e => {
+  if (e.target.id !== 'parl-vol') return;
+  const t = e.target; t.style.setProperty('--p', ((t.value - t.min) / (t.max - t.min) * 100) + '%');
+  document.getElementById('parl-val').textContent = t.value + ' %';
+});
+document.addEventListener('change', e => { if (e.target.id === 'parl-vol') { e.target.blur(); parlVolume(Number(e.target.value) / 100); } });
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button,a'); if (!b) return;
+  if (b.dataset.nav === 'parler') return parlLit();
+  if ('parlMax' in b.dataset) return parlVolume(1);
+  if (b.dataset.parlEcouter){
+    b.disabled = true;
+    try { await parlPost('ecouter', {son: b.dataset.parlEcouter}); toast('Écoute sur le robot…'); } catch (err){ toast(err.message); }
+    setTimeout(() => { b.disabled = false; }, 3000);
+    return;
+  }
+  if (b.dataset.parlVoir){
+    const choix = document.querySelector(`select.choix[data-id="${b.dataset.parlVoir}"]`);
+    if (!choix || choix.value === 'aucune') return toast('Aucune mimique choisie : il hoche la tête');
+    b.disabled = true;
+    try { await parlPost('mimique', {mimique: choix.value}); toast('Regarde le robot…'); } catch (err){ toast(err.message); }
+    setTimeout(() => { b.disabled = false; }, 3000);
+    return;
+  }
+  if ('parlEssai' in b.dataset){
+    b.disabled = true;
+    try { await parlPost('essai', {}); toast('Il parle…'); } catch (err){ toast(err.message); }
+    setTimeout(() => { b.disabled = false; }, 3000);
+  }
+});
+setInterval(() => { if (typeof current !== 'undefined' && current === 'parler') parlLit(); }, 5000);
+window.addEventListener('hashchange', () => { if (location.hash === '#parler') parlLit(); });
+
+/* 16/10 : carte « Mots d'éveil » (logique : reachy_eveil.py). « salut Alison » reste toujours actif ; en plus,
+   un modèle microWakeWord de LVA (Okay Nabu…), réglé dans Home Assistant. Préfixe evei-. */
+let EVEI = null, eveiBusy = false;
+const eveiPct = v => Math.round(v * 100) + ' %';
+function eveiCorps(){
+  const v = EVEI;
+  if (!v) return '';
+  if (!v.ha.disponible) return card('Mots d\'éveil', `<p class="empty" style="margin:0">${esc(v.ha.erreur || 'Home Assistant ne répond pas')}</p>`, '', 'ha');
+  const dis = R.ecriture ? '' : 'disabled';
+  const opts = [['', 'Aucun (« salut Alison » seul)']].concat(v.modeles.filter(m => m.dispo).map(m => [m.nom, m.nom + (m.francais ? ' (entraîné aussi en français)' : '')]));
+  const m = v.modeles.find(x => x.nom === v.mot);
+  const etat = v.mot ? `<span class="badge ok">+ ${esc(v.mot)}</span>` : '<span class="badge">« salut Alison » seul</span>';
+  const seuil = m ? `<div class="row"><div><div class="row-label">Exigence</div><div class="row-help">Plus haut : moins de faux réveils (télé, conversation), mais il faut le dire plus nettement. Valeur d'origine du modèle : ${eveiPct(m.defaut)}.</div></div>
+      <div class="row-ctl"><div class="line"><input type="range" id="evei-seuil" min="${Math.round(v.min*100)}" max="${Math.round(v.max*100)}" step="1" value="${Math.round(v.seuil*100)}" style="--p:${(v.seuil-v.min)/(v.max-v.min)*100}%" ${dis} aria-label="Exigence du mot d'éveil"><span class="val" id="evei-val">${eveiPct(v.seuil)}</span></div>
+      ${Math.abs(v.seuil - m.defaut) > 0.004 && R.ecriture ? '<button class="reset" data-evei-defaut>Valeur d\'origine</button>' : ''}</div></div>` : '';
+  return `<div class="card"><div class="card-title"><span>Mots d'éveil${src('ha')}</span>${etat}</div><div class="rows">
+      <div class="row"><div><div class="row-label">« Salut Alison »</div><div class="row-help">Toujours actif (reconnaissance en français sur le robot).</div></div><div class="row-ctl"><span class="badge ok">actif</span></div></div>
+      <div class="row"><div><div class="row-label">Deuxième mot d'éveil</div><div class="row-help">Un mot du robot en plus, pour essayer. Les modèles anglais comprennent moins bien un accent français.</div></div>
+        <div class="row-ctl"><div class="line"><select class="choix" id="evei-mot" ${dis} aria-label="Deuxième mot d'éveil">${opts.map(([k, t]) => `<option value="${esc(k)}" ${k === (v.mot || '') ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div></div></div>
+      ${seuil}
+    </div></div>`;
+}
+function eveiDessiner(){ const el = document.getElementById('evei-root'); if (el) el.innerHTML = eveiCorps(); }
+async function eveiLit(){
+  if (eveiBusy || document.hidden) return;
+  eveiBusy = true;
+  try { const r = await fetch('/api/eveil', {cache:'no-store'}); if (r.ok) EVEI = await r.json(); } catch (_) {}
+  eveiBusy = false;
+  const actif = document.activeElement;
+  if (!(actif && (actif.id === 'evei-seuil' || actif.id === 'evei-mot'))) eveiDessiner();
+}
+async function eveiPost(chemin, corps, message){
+  try {
+    const r = await fetch('/api/eveil/' + chemin, {method:'POST', cache:'no-store',
+      headers:{'Content-Type':'application/json', 'X-Reachy-Jeton': JETON}, body: JSON.stringify(corps || {})});
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(perimee(r, data) || data.erreur || ('erreur ' + r.status));
+    EVEI = data; toast(message(data));
+  } catch (err){ toast(err.message); }
+  eveiDessiner();
+}
+document.addEventListener('input', e => {
+  if (e.target.id !== 'evei-seuil') return;
+  const t = e.target; t.style.setProperty('--p', ((t.value - t.min) / (t.max - t.min) * 100) + '%');
+  document.getElementById('evei-val').textContent = t.value + ' %';
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'evei-seuil'){ e.target.blur(); eveiPost('seuil', {seuil: Number(e.target.value) / 100}, d => 'Exigence : ' + eveiPct(d.seuil)); }
+  if (e.target.id === 'evei-mot'){ e.target.blur(); eveiPost('choisir', {mot: e.target.value}, d => d.mot ? 'Il se réveille aussi sur « ' + d.mot + ' »' : 'Seul « salut Alison » le réveille'); }
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-evei-defaut]'); if (!b || !EVEI || !EVEI.mot) return;
+  eveiPost('choisir', {mot: EVEI.mot}, d => 'Exigence d\'origine : ' + eveiPct(d.seuil));
+});
+setInterval(() => { if (typeof current !== 'undefined' && current === 'parler') eveiLit(); }, 15000);
+</script>
+<!-- PARLER : fin -->
+
+<!-- APPRENTISSAGE : début (11/10/2026) : apprendre un visage et une voix. Préfixe appr-. Logique : reachy_apprendre.py -->
+<style>
+.appr-qui{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
+.appr-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14px;cursor:pointer}
+.appr-chip:hover{background:var(--surface-2)}
+.appr-chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.appr-new{display:inline-flex;gap:var(--s2);align-items:center}
+.appr-new input{padding:6px 10px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface-2);width:150px}
+.appr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s4);margin-top:var(--s4)}
+.appr-grid .card{margin:0}
+.appr-cam{position:relative;aspect-ratio:16/9;border-radius:var(--r-sm);overflow:hidden;background:#1a1d23}
+.appr-cam img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.appr-cam svg{position:absolute;inset:0;width:100%;height:100%}
+.appr-cam .appr-vide{position:absolute;inset:0;display:grid;place-items:center;color:#aeb4bf;font-size:14px;text-align:center;padding:var(--s4)}
+.appr-live{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;margin-top:var(--s3);font-size:14px}
+.appr-seances{list-style:none;margin:var(--s4) 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.appr-seances li{display:flex;align-items:center;gap:var(--s3);padding:8px 12px;border-radius:var(--r-sm);background:var(--surface-2);font-size:14px}
+.appr-seances li b{font-weight:600}
+.appr-seances li span{color:var(--muted)}
+.appr-seances li button{margin-left:auto}
+.appr-accord{display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s4);padding:var(--s3) var(--s4);border-radius:var(--r-sm);background:var(--warn-soft);font-size:14px}
+.appr-accord label{display:flex;gap:var(--s2);align-items:flex-start;cursor:pointer}
+.appr-accord input[type=checkbox]{width:18px;height:18px;margin-top:2px;accent-color:var(--accent)}
+.appr-accord input[type=text]{padding:6px 10px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);max-width:240px}
+.appr-btns{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s4)}
+.appr-run{margin-top:var(--s4);padding:var(--s4);border-radius:var(--r-sm);border:1px solid var(--accent);background:var(--accent-soft)}
+.appr-run .kick{font-size:12.5px;font-weight:650;color:var(--accent-text);text-transform:uppercase;letter-spacing:.04em}
+.appr-big{font-size:20px;font-weight:650;line-height:1.35;margin:var(--s2) 0}
+.appr-phrase{font-size:21px;font-weight:600;line-height:1.4;margin:var(--s2) 0;quotes:"« " " »"}
+.appr-phrase::before{content:open-quote}.appr-phrase::after{content:close-quote}
+.appr-vu{height:10px;border-radius:999px;background:var(--track);overflow:hidden;margin:var(--s3) 0}
+.appr-vu b{display:block;height:100%;width:0;background:var(--accent);transition:width .12s linear}
+.appr-vu.parle b{background:var(--ok)}
+.appr-dots{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--s3)}
+.appr-dots span{min-width:30px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:650;text-align:center;background:var(--surface);color:var(--faint);border:1px solid var(--line)}
+.appr-dots span.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.appr-dots span.cur{border-color:var(--accent);color:var(--accent-text)}
+.appr-dots span.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.appr-msg{border-radius:var(--r-sm);padding:var(--s3) var(--s4);font-size:14px;margin-top:var(--s3)}
+.appr-msg.ok{background:var(--ok-soft)}.appr-msg.warn{background:var(--warn-soft)}.appr-msg.bad{background:var(--bad-soft)}
+.appr-chip{transition:background var(--t),color var(--t),border-color var(--t)}
+@media (max-width:860px){
+  .appr-chip{min-height:var(--tap)}
+  .appr-new{flex:1 1 100%}
+  .appr-new input{flex:1;min-width:0;min-height:var(--tap)}
+  .appr-accord input[type=text]{min-height:var(--tap);max-width:none}
+  .appr-seances li{flex-wrap:wrap}
+  .appr-grid{grid-template-columns:minmax(0,1fr)}
+  .appr-btns .pers-btn{flex:1 1 auto;justify-content:center}
+  .appr-phrase{font-size:19px}
+}
+</style>
+<script>
+'use strict';
+/* GET /api/apprendre (fiches, séances, capacités) ; /api/apprendre/tache (la séance en cours) ; /api/apprendre/vue
+   (la dernière image analysée : cadres, conseils, ressemblances). Écritures : même jeton que les réglages. */
+let A = null, apprNom = null, apprTimer = null, apprVueTimer = null, apprConfirme = null;
+const apprAff = n => n ? n.charAt(0).toUpperCase() + n.slice(1) : '';
+const apprNb = v => String(v).replace('.', ',');
+const apprDate = iso => { try { return new Date(iso).toLocaleDateString('fr-FR', {day:'numeric', month:'long'}); } catch (_) { return ''; } };
+async function apprPost(chemin, corps){
+  const r = await fetch('/api/apprendre/' + chemin, {method:'POST', cache:'no-store',
+    headers:{'Content-Type':'application/json', 'X-Reachy-Jeton': JETON}, body: JSON.stringify(corps || {})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(perimee(r, data) || data.erreur || ('erreur ' + r.status));
+  return data;
+}
+async function apprCharger(){
+  const racine = document.getElementById('appr-root');
+  if (!racine) return;
+  try { const r = await fetch('/api/apprendre', {cache:'no-store'}); if (!r.ok) throw new Error(); A = await r.json(); }
+  catch (_) { racine.innerHTML = '<p class="empty">Le robot ne répond pas. Réessayer dans un instant.</p>'; return; }
+  const t = A.tache;
+  if (t && t.etat === 'en cours' && t.nom) apprNom = t.nom;
+  if (!apprNom || !A.personnes.some(p => p.nom === apprNom)) apprNom = apprNom && /^[a-z][a-z0-9-]{0,29}$/.test(apprNom) ? apprNom : (A.personnes[0] || {}).nom || null;
+  apprDessiner();
+  apprSuivre();
+}
+function apprPersonne(){ return A.personnes.find(p => p.nom === apprNom) || {nom: apprNom, affiche: apprAff(apprNom), visage: [], voix: [], accord: {}}; }
+function apprSeances(liste, genre, unite){
+  if (!liste.length) return `<ul class="appr-seances"><li><span>Aucune séance pour l'instant.</span></li></ul>`;
+  return `<ul class="appr-seances">${liste.map(s => {
+    const cle = genre + ':' + s.id, conf = apprConfirme === cle;
+    return `<li><b>${esc(s.moment ? apprAff(s.moment) : 'Première séance')}</b><span>${esc(apprDate(s.le))}${s.nombre ? ' · ' + s.nombre + ' ' + unite : ''}</span>
+      <button class="pers-btn ${conf ? 'danger' : ''}" data-appr-oublier="${esc(cle)}" ${A.capacites.ecriture ? '' : 'disabled'}>${conf ? 'Confirmer l\'oubli' : 'Oublier'}</button></li>`; }).join('')}</ul>`;
+}
+const accordRequis = () => !R || !R.valeurs || R.valeurs.accord_requis !== false;   // 11/10 : réglage de Personnes
+function apprAccord(p, genre){
+  const a = p.accord[genre];
+  if (!a && !accordRequis()) return '';
+  if (a) return `<div class="note">Accord de ${esc(p.affiche)} noté le ${esc(apprDate(a.le))}, donné par ${esc(a.par)}.</div>`;
+  return `<div class="appr-accord"><label><input type="checkbox" data-appr-ok="${genre}"><span>${esc(p.affiche)} est d'accord pour que le robot garde une empreinte de ${genre === 'voix' ? 'sa voix' : 'son visage'} (des nombres, ni photo ni enregistrement).</span></label>
+    <label style="flex-direction:column;gap:4px">Accord donné par<input type="text" data-appr-par="${genre}" maxlength="60" value="${esc(p.affiche)}"></label></div>`;
+}
+function apprDessiner(){
+  const racine = document.getElementById('appr-root');
+  if (!racine || !A) return;
+  const t = A.tache, actif = t && t.etat === 'en cours';
+  const chips = A.personnes.map(p => `<button class="appr-chip" data-appr-qui="${p.nom}" aria-pressed="${p.nom === apprNom}" ${actif ? 'disabled' : ''}>${esc(p.affiche)}</button>`).join('');
+  const qui = `<div class="card"><div class="card-title"><span>Qui apprend ?${src()}</span></div><div class="card-body">
+    <div class="appr-qui">${chips}<span class="appr-new"><input type="text" id="appr-prenom" maxlength="30" placeholder="Nouveau prénom" autocomplete="off" ${actif ? 'disabled' : ''}><button class="pers-btn" data-appr-ajouter ${actif ? 'disabled' : ''}>Ajouter</button></span></div>
+    <div class="note">Une séance de plus = le robot reconnaît mieux dans une autre lumière ou une autre position. Il garde la meilleure ressemblance de toutes les séances.</div></div></div>`;
+  if (!apprNom){ racine.innerHTML = qui + `<div class="card"><div class="card-body"><p class="empty" style="margin:0">Choisir ou ajouter une personne.</p></div></div>`; return; }
+  const p = apprPersonne();
+  racine.innerHTML = qui + `<div class="appr-grid">${apprVisage(p, t)}${apprVoix(p, t)}</div>
+    <div class="note">Tout reste dans le robot : aucune photo, aucun enregistrement n'est gardé ni envoyé, seulement des empreintes (des nombres). Elles servent à saluer, jamais à autoriser une action.</div>`;
+}
+function apprVisage(p, t){
+  const cap = A.capacites.camera, enCours = t && t.genre === 'visage' && t.nom === p.nom;
+  let bas;
+  if (enCours && t.etat === 'en cours'){
+    const verif = t.phase === 'verification';
+    bas = `<div class="appr-run" aria-live="polite"><div class="kick">${verif ? 'Vérification' : `Pose ${t.pose + 1} sur ${t.poses}`}</div>
+      <div class="appr-big" id="appr-consigne">${verif ? 'Restez face au robot, il essaie de vous reconnaître…' : esc(t.consigne)}</div>
+      <div class="pers-bar"><b style="width:${Math.round(t.fait / t.total * 100)}%"></b></div>
+      <div class="note">${t.phase === 'consigne' ? `Prêt·e ? Images dans ${Math.ceil(t.compte || 0)} s` : `Image ${t.fait} sur ${t.total}`} · ${t.retenues} vue(s) nette(s) · il en faut ${A.vues_min}</div>
+      <div class="appr-btns"><button class="pers-btn" data-appr-annuler>Annuler</button></div></div>`;
+  } else {
+    let fin = '';
+    if (enCours && t.etat === 'fini'){ const v = t.verification || {}, bon = v.reconnu === p.nom;
+      fin = `<div class="appr-msg ${bon ? 'ok' : 'warn'}">${bon ? `Séance apprise et ${esc(p.affiche)} reconnu·e (ressemblance ${apprNb((v.ressemblance || 0).toFixed(2))}).` : `Séance apprise, mais pas encore reconnu·e à l'instant (ressemblance ${apprNb((v.ressemblance || 0).toFixed(2))}). Une séance de plus, mieux éclairée, aidera.`}</div>`; }
+    else if (enCours && (t.etat === 'erreur' || t.etat === 'annule')) fin = `<div class="appr-msg ${t.etat === 'erreur' ? 'bad' : 'warn'}">${esc(t.message)}</div>`;
+    bas = fin + apprSeances(p.visage, 'visage', 'vues') + (cap ? apprAccord(p, 'visage') : '') +
+      `<div class="appr-btns"><button class="pers-btn primary" data-appr-lancer="visage" ${cap && A.capacites.ecriture && !(t && t.etat === 'en cours') ? '' : 'disabled'}>Apprendre une séance · 30 s</button></div>` +
+      (cap ? '' : `<div class="note">${esc(A.manque.camera)}</div>`);
+  }
+  return `<div class="card"><div class="card-title"><span>Visage${src()}</span><span class="badge ${p.visage.length ? 'ok' : ''}">${p.visage.length} séance(s)</span></div><div class="card-body">
+    <div class="appr-cam"><img id="appr-img" alt="Ce que voit le robot" hidden><svg id="appr-over" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true"></svg><div class="appr-vide" id="appr-vide">${cap ? 'Pas d\'image pour l\'instant' : 'Pas de caméra'}</div></div>
+    <div class="appr-live" id="appr-live" aria-live="polite"></div>${bas}</div></div>`;
+}
+const APPR_ECOUTE = {bruit:'Silence quelques instants : le robot mesure le bruit de la pièce…', attente:'À vous : lisez la phrase, à voix normale.',
+  parole:'J\'écoute…', analyse:'Analyse de la phrase…', entre:'Bien ! Phrase suivante…', fin:'Toutes les phrases sont lues.'};
+function apprVoix(p, t){
+  const cap = A.capacites.micro, enCours = t && t.genre === 'voix' && t.nom === p.nom, essai = t && t.genre === 'essai';
+  let bas;
+  if (enCours && t.etat === 'en cours'){
+    const reussies = t.phrases.filter(Boolean).length, i = Math.min(t.phrase, t.total - 1), probleme = t.ecoute === 'refus' || t.ecoute === 'rien';
+    const dots = t.phrases.map((x, k) => `<span class="${x ? (x.alerte ? 'warn' : 'ok') : k === t.phrase ? 'cur' : ''}" title="${x ? esc(x.alerte || ('ressemblance ' + (x.ressemblance != null ? apprNb(x.ressemblance) : '—'))) : ''}">${x ? '✓' : k + 1}</span>`).join('');
+    const derniere = t.phrases[t.phrase - 1];
+    bas = `<div class="appr-run" aria-live="polite"><div class="kick">${t.ecoute === 'fin' ? 'Terminé' : `Phrase ${i + 1} sur ${t.total}`} · le robot reste immobile</div>
+      ${t.ecoute === 'fin' ? '' : `<div class="appr-phrase">${esc(A.phrases[i])}</div>`}
+      <div class="appr-vu ${t.ecoute === 'parole' ? 'parle' : ''}"><b id="appr-vu" style="width:${Math.round((t.niveau || 0) * 100)}%"></b></div>
+      <div id="appr-ecoute">${probleme ? `<div class="appr-msg warn">${esc(t.message)}</div>` : esc(APPR_ECOUTE[t.ecoute] || '')}</div>
+      ${derniere && derniere.alerte && t.ecoute === 'entre' ? `<div class="appr-msg warn">${esc(derniere.alerte)} : vérifier qui lit.</div>` : ''}
+      <div class="appr-dots">${dots}</div>
+      <div class="appr-btns">${probleme ? `<button class="pers-btn primary" data-appr-phrase="refaire">Refaire</button><button class="pers-btn" data-appr-phrase="passer">Passer</button>` : ''}
+        <button class="pers-btn ${t.ecoute === 'fin' ? 'primary' : ''}" data-appr-phrase="terminer" ${reussies >= A.phrases_min ? '' : 'disabled'} title="Au moins ${A.phrases_min} phrases réussies">Terminer et enregistrer (${reussies})</button>
+        <button class="pers-btn" data-appr-annuler>Annuler</button></div></div>`;
+  } else if (essai && t.etat === 'en cours'){
+    bas = `<div class="appr-run" aria-live="polite"><div class="kick">Qui parle ?</div><div class="appr-big">Dites une phrase, n'importe laquelle (sans « Alison »).</div>
+      <div class="appr-vu ${t.ecoute === 'parole' ? 'parle' : ''}"><b id="appr-vu" style="width:${Math.round((t.niveau || 0) * 100)}%"></b></div>
+      <div id="appr-ecoute">${esc(APPR_ECOUTE[t.ecoute] || '')}</div><div class="appr-btns"><button class="pers-btn" data-appr-annuler>Annuler</button></div></div>`;
+  } else {
+    let fin = '';
+    if (enCours && t.etat === 'fini') fin = `<div class="appr-msg ok">Séance apprise : ${t.retenues} phrases. Le robot l'utilise dès la prochaine phrase entendue.</div>`;
+    else if (enCours && (t.etat === 'erreur' || t.etat === 'annule')) fin = `<div class="appr-msg ${t.etat === 'erreur' ? 'bad' : 'warn'}">${esc(t.message)}</div>`;
+    else if (essai && t.etat === 'fini'){ const r = t.resultat || {}, sc = Object.entries(r.scores || {}).sort((a, b) => b[1] - a[1]);
+      fin = `<div class="appr-msg ${r.nom !== 'inconnu' ? 'ok' : 'warn'}">${r.nom !== 'inconnu' ? `Reconnu·e : <b>${esc(apprAff(r.nom))}</b>` : 'Voix non reconnue'}<br><small>${sc.map(([n, s]) => `${esc(apprAff(n))} ${apprNb(s.toFixed(2))}`).join(' · ')} — il faut ${apprNb(r.seuil)} et ${apprNb(r.ecart)} d'avance</small></div>`; }
+    else if (essai && t.etat === 'erreur') fin = `<div class="appr-msg warn">${esc(t.message)}</div>`;
+    bas = fin + apprSeances(p.voix, 'voix', 'phrases') + (cap ? apprAccord(p, 'voix') : '') +
+      `<div class="appr-btns"><button class="pers-btn primary" data-appr-lancer="voix" ${cap && A.capacites.ecriture && !(t && t.etat === 'en cours') ? '' : 'disabled'}>Apprendre une séance · ${A.phrases.length} phrases</button>
+       <button class="pers-btn" data-appr-essai ${cap && !(t && t.etat === 'en cours') ? '' : 'disabled'}>Qui parle ?</button></div>` +
+      (cap ? '<div class="note">Le robot s\'immobilise pendant la séance : ses moteurs ne se mêlent pas à la voix. Lire à sa place habituelle, à voix normale.</div>' : `<div class="note">${esc(A.manque.micro)}</div>`);
+  }
+  return `<div class="card"><div class="card-title"><span>Voix${src()}</span><span class="badge ${p.voix.length ? 'ok' : ''}">${p.voix.length} séance(s)</span></div><div class="card-body">${bas}</div></div>`;
+}
+
+/* ---------- le direct : la séance (0,3 s) et l'image analysée (1 s), seulement rubrique ouverte ---------- */
+function apprVisible(){ return current === 'apprendre' && !document.hidden && document.getElementById('appr-root'); }
+function apprSuivre(){
+  clearTimeout(apprTimer);
+  const tour = async () => {
+    if (!apprVisible()) return;
+    const avant = A && A.tache;
+    if (avant && avant.etat === 'en cours'){
+      try { const t = (await (await fetch('/api/apprendre/tache', {cache:'no-store'})).json()).tache; apprTache(avant, t); } catch (_) {}
+    }
+    apprTimer = setTimeout(tour, A && A.tache && A.tache.etat === 'en cours' ? 300 : 1500);
+  };
+  apprTimer = setTimeout(tour, 300);
+  apprVue();
+}
+function apprTache(avant, t){
+  A.tache = t;
+  const memeEcran = t && avant && t.etat === avant.etat && t.genre === avant.genre && t.phrase === avant.phrase && t.ecoute === avant.ecoute
+    && t.pose === avant.pose && t.phase === avant.phase && t.fait === avant.fait && Math.ceil(t.compte || 0) === Math.ceil(avant.compte || 0);
+  if (memeEcran){ const vu = document.getElementById('appr-vu'); if (vu) vu.style.width = Math.round((t.niveau || 0) * 100) + '%'; return; }
+  if (!t || t.etat !== 'en cours') return apprCharger();        // fin : les séances ont changé
+  apprDessiner();
+}
+function apprVue(){
+  clearTimeout(apprVueTimer);
+  const tour = async () => {
+    if (!apprVisible()) return;
+    const img = document.getElementById('appr-img');
+    if (img && A && A.capacites.camera){
+      try {
+        const [r, v] = await Promise.all([fetch('/api/image?t=' + Date.now(), {cache:'no-store'}), fetch('/api/apprendre/vue', {cache:'no-store'})]);
+        const vue = v.ok ? await v.json() : null;
+        if (r.ok){ const url = URL.createObjectURL(await r.blob()); const old = img.src; img.src = url; img.hidden = false; if (old.startsWith('blob:')) URL.revokeObjectURL(old); }
+        apprPeindre(vue);
+      } catch (_) {}
+    }
+    apprVueTimer = setTimeout(tour, 1000);
+  };
+  tour();
+}
+function apprPeindre(vue){
+  const over = document.getElementById('appr-over'), live = document.getElementById('appr-live'), vide = document.getElementById('appr-vide');
+  if (!over || !live) return;
+  if (vide) vide.textContent = vue && vue.image ? '' : 'Pas d\'image pour l\'instant';
+  const vs = (vue && vue.visages) || [];
+  over.innerHTML = vs.map(f => { const [x, y, w, h] = f.boite, bon = f.qui && f.qui !== 'inconnu';
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${bon ? '#4cc581' : f.conseil === 'bien' ? '#6f9bff' : '#e3a43b'}" stroke-width="2.5" vector-effect="non-scaling-stroke" rx=".005"/>`; }).join('');
+  if (!vs.length){ live.innerHTML = `<span class="badge">Aucun visage vu</span><span class="note" style="margin:0">Se placer face au robot.</span>`; return; }
+  const f = vs[0], moi = f.scores[apprNom], seuil = (R && R.valeurs && R.valeurs.who_min) || 0.45;
+  const qui = f.qui && f.qui !== 'inconnu' ? `<span class="badge ok">${esc(apprAff(f.qui))} reconnu·e</span>` : f.qui === 'inconnu' ? '<span class="badge warn">Visage inconnu</span>' : '';
+  live.innerHTML = `${qui}<span class="badge ${f.conseil === 'bien' ? 'ok' : 'warn'}">${f.conseil === 'bien' ? 'Bonne image' : esc(f.conseil)}</span>` +
+    (moi != null ? `<span>Ressemblance avec ${esc(apprAff(apprNom))} : <b>${apprNb(moi.toFixed(2))}</b> <span class="note" style="margin:0">(il faut ${apprNb(seuil)})</span></span>` : '') +
+    `<span class="note" style="margin:0">visage ${f.taille} px · lumière ${Math.round(f.lumiere * 100)} %</span>`;
+}
+
+/* ---------- les gestes ---------- */
+async function apprLancer(genre){
+  const p = apprPersonne(), ok = document.querySelector(`[data-appr-ok="${genre}"]`), par = document.querySelector(`[data-appr-par="${genre}"]`);
+  if (accordRequis() && !p.accord[genre] && !(ok && ok.checked)){ toast('Cocher d\'abord l\'accord de ' + p.affiche); return; }
+  try {
+    const r = await apprPost(genre, {nom: apprNom, par: par ? par.value : '', accord: p.accord[genre] || !accordRequis() ? undefined : true});
+    A.tache = r.tache; apprDessiner(); apprSuivre();
+  } catch (err){ toast(err.message); }
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button,a'); if (!b) return;
+  if (b.dataset.nav === 'apprendre') return apprCharger();
+  if (b.dataset.apprQui){ apprNom = b.dataset.apprQui; apprConfirme = null; return apprDessiner(); }
+  if ('apprAjouter' in b.dataset){
+    const n = (document.getElementById('appr-prenom').value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/[\s_]+/g, '-');
+    if (!/^[a-z][a-z0-9-]{0,29}$/.test(n) || n === 'inconnu') return toast('Un prénom en lettres, sans espace (30 au plus)');
+    apprNom = n; if (!A.personnes.some(p => p.nom === n)) A.personnes.push({nom: n, affiche: apprAff(n), visage: [], voix: [], accord: {}});
+    return apprDessiner();
+  }
+  if (b.dataset.apprLancer) return apprLancer(b.dataset.apprLancer);
+  if ('apprEssai' in b.dataset){ try { A.tache = (await apprPost('voix/essai', {})).tache; apprDessiner(); apprSuivre(); } catch (err){ toast(err.message); } return; }
+  if (b.dataset.apprPhrase){ try { const r = await apprPost('voix/phrase', {action: b.dataset.apprPhrase}); A.tache = r.tache; if (r.tache.etat !== 'en cours') apprCharger(); else { apprDessiner(); apprSuivre(); } } catch (err){ toast(err.message); } return; }
+  if ('apprAnnuler' in b.dataset){ try { await apprPost('annuler', {}); toast('Annulé : rien n\'a été enregistré'); } catch (err){ toast(err.message); } return apprCharger(); }
+  if (b.dataset.apprOublier){
+    if (apprConfirme !== b.dataset.apprOublier){ apprConfirme = b.dataset.apprOublier; return apprDessiner(); }
+    const [genre, id] = b.dataset.apprOublier.split(':'); apprConfirme = null;
+    try { A = Object.assign(A, await apprPost('oublier-seance', {nom: apprNom, genre, id})); toast('Séance oubliée, pour de bon'); } catch (err){ toast(err.message); }
+    return apprDessiner();
+  }
+});
+function apprendreVue(){
+  setTimeout(apprCharger, 0);
+  return `<div id="appr-root"><p class="empty">Chargement…</p></div>`;
+}
+</script>
+<!-- CAMÉRAS : début (11/10/2026) : trier les visages vus par les caméras de la maison. Préfixe cams-. Logique : reachy_cams.py -->
+<style>
+.cams-local{display:flex;gap:var(--s3);align-items:flex-start;background:var(--ok-soft);border-radius:var(--r);padding:var(--s3) var(--s4);font-size:14px;margin-bottom:var(--s4)}
+.cams-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--s4)}
+.cams-tab{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:600;font-size:14px;color:var(--muted);cursor:pointer}
+.cams-tab.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.cams-tab[disabled]{opacity:.55}
+.cams-grp{border:1px solid var(--line);border-radius:var(--r);padding:var(--s4)}
+.cams-grp + .cams-grp{margin-top:var(--s3)}
+.cams-head{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s3);align-items:baseline;margin-bottom:var(--s3)}
+.cams-head b{font-size:15.5px}
+.cams-head span{color:var(--muted);font-size:13.5px}
+.cams-guess{border-radius:999px;padding:2px 10px;font-size:13px;font-weight:600;background:var(--accent-soft);color:var(--accent-text)}
+.cams-guess.warn{background:var(--warn-soft);color:var(--warn)}
+.cams-head .cams-plaque,.cams-list li .cams-plaque{display:inline-flex;align-items:center;gap:2px;border:1.5px solid var(--line-strong,var(--line));border-radius:6px;padding:1px 8px;font:600 13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em;color:var(--text);background:var(--surface)}
+.cams-plaque-x{border:0;background:none;color:var(--muted);font-size:17px;line-height:1;min-width:32px;min-height:32px;margin:-6px -8px -6px 0;cursor:pointer;border-radius:6px}
+.cams-plaque-x:hover{color:var(--bad)}
+@media (pointer:coarse){.cams-plaque-x{min-width:44px;min-height:44px;margin:-12px -10px -12px 0}}
+.cams-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
+.cams-th{position:relative;aspect-ratio:1;border-radius:var(--r-sm);overflow:hidden;background:var(--surface-2);border:2px solid transparent;padding:0;cursor:pointer}
+.cams-th img{width:100%;height:100%;object-fit:cover;display:block}
+.cams-th.out{border-color:var(--bad)}
+.cams-th.out img{opacity:.35}
+.cams-th.out::after{content:"✕";position:absolute;top:2px;right:6px;color:var(--bad);font-weight:700}
+.cams-acts{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s3);align-items:center}
+.cams-acts select{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 8px;font-size:14px}
+.cams-ghost{border-color:transparent!important;background:none!important;color:var(--muted)}
+.cams-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cams-list li{display:flex;flex-wrap:wrap;gap:var(--s3);padding:8px 12px;border-radius:var(--r-sm);background:var(--surface-2);font-size:14px}
+.cams-list li span{color:var(--muted)}
+.cams-people{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s3)}
+.cams-person{border:1px solid var(--line);border-radius:var(--r);padding:var(--s3) var(--s4)}
+.cams-person b{display:block}
+.cams-person div{display:flex;justify-content:space-between;font-size:13.5px;color:var(--muted)}
+.cams-person em{font-style:normal;color:var(--text);font-weight:600}
+.cams-local svg{flex:none;margin-top:2px;color:var(--ok)}
+#cams-root + .card,#cams-root + .expert{margin-top:var(--s4)}
+.cams-tab{transition:background var(--t),color var(--t),border-color var(--t)}
+.cams-tab:not(.on):not([aria-disabled]):hover{border-color:var(--line-2);color:var(--text)}
+.cams-tab[aria-disabled]{opacity:1;border-style:dashed;cursor:default;color:var(--faint)}
+@media (max-width:860px){
+  .cams-tab{min-height:var(--tap);display:inline-flex;align-items:center}
+  .cams-acts .pers-btn,.cams-acts select{flex:1 1 auto;min-height:var(--tap)}
+  .cams-grp{padding:var(--s3)}
+  .cams-thumbs{grid-template-columns:repeat(auto-fill,minmax(68px,1fr))}
+  .cams-list li > span[style]{margin-left:0!important;width:100%}
+  .cams-list li > span[style] .pers-btn{flex:1}
+}
+</style>
+<script>
+'use strict';
+/* GET /api/cams (groupes à trier, tris récents, ce qui est appris, étiquettes) ; GET /api/cams/vue?p=&f=&jeton= (une vue) ;
+   POST /api/cams/trier {passage, groupe, nom, ecartees[], accord?, par?, affiche?, cacher?}, /api/cams/ignorer {passage, groupe},
+   /api/cams/etiquette {genre, nom, cacher? | oublier | retirer_plaque}. Onglets : visages (personnes), animaux et véhicules
+   (étiquettes ; 12/10 : la plaque lue par le robot, sûre après 3 images d'accord, rattachée à l'étiquette au tri). */
+let C = null, camsOut = {}, camsAccord = {}, camsOnglet = 'visage', camsConfirme = null;
+const CAMS_GENRES = [['visage', 'Visages'], ['animal', 'Animaux'], ['vehicule', 'Véhicules']];
+const camsAff = n => n ? n.charAt(0).toUpperCase() + n.slice(1) : '';
+const camsQuand = s => { try { return new Date(s * 1000).toLocaleString('fr-FR', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}); } catch (_) { return ''; } };
+const camsNb = v => String(v).replace('.', ',');
+const camsPlaque = p => /^[A-Z]{2}[0-9]{3}[A-Z]{2}$/.test(p || '') ? p.slice(0, 2) + '-' + p.slice(2, 5) + '-' + p.slice(5) : (p || '');
+const camsSlug = t => (t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+const camsEtiq = (genre, nom) => ((C.etiquettes || {})[genre] || []).find(e => e.nom === nom);
+const camsNom = (genre, nom) => genre === 'visage' ? camsAff(nom) : ((camsEtiq(genre, nom) || {}).affiche || camsAff(nom));
+async function camsPost(chemin, corps){
+  const r = await fetch('/api/cams/' + chemin, {method:'POST', cache:'no-store',
+    headers:{'Content-Type':'application/json', 'X-Reachy-Jeton': JETON}, body: JSON.stringify(corps || {})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(perimee(r, data) || data.erreur || ('erreur ' + r.status));
+  return data;
+}
+async function camsCharger(){
+  const racine = document.getElementById('cams-root');
+  if (!racine) return;
+  try { const r = await fetch('/api/cams', {cache:'no-store'}); if (!r.ok) throw new Error(); C = await r.json(); }
+  catch (_) { racine.innerHTML = '<p class="empty">Le robot ne répond pas. Réessayer dans un instant.</p>'; return; }
+  camsDessiner();
+}
+function camsCle(g){ return g.passage + ':' + g.groupe; }
+function camsGroupe(g){
+  const cle = camsCle(g), p = g.proposition || {}, out = camsOut[cle] || {}, visage = g.genre === 'visage';
+  const quoi = visage ? '' : ' · ' + esc(g.classe || (g.genre === 'animal' ? 'animal' : 'véhicule'));
+  const guess = p.nom && p.par === 'plaque' ? `<span class="cams-guess">Le robot reconnaît la plaque : ${esc(camsNom(g.genre, p.nom))}</span>`
+    : p.nom ? `<span class="cams-guess">Le robot pense : ${esc(camsNom(g.genre, p.nom))} (${camsNb(p.score)}, ${p.voix} vues sur ${p.sur})</span>`
+    : p.desaccord ? `<span class="cams-guess warn">Le robot hésite</span>`
+    : p.pres ? `<span class="cams-guess warn">Ressemble un peu à ${esc(camsNom(g.genre, p.pres))} (${camsNb(p.score)})</span>`
+    : `<span class="cams-guess warn">${visage ? 'Personne de connu' : 'Rien de connu'}</span>`;
+  const options = visage ? (C.appris || []).map(a => [a.nom, camsAff(a.nom)]) : ((C.etiquettes || {})[g.genre] || []).map(e => [e.nom, e.affiche]);
+  const acc = camsAccord[cle];
+  const accord = acc ? `<div class="appr-accord"><label><input type="checkbox" data-cams-ok="${esc(cle)}"><span>${esc(camsAff(acc))} est d'accord pour que le robot garde une empreinte de son visage vue par les caméras (des nombres ; les images sont effacées après le tri).</span></label>
+      <label>Accord donné par <input type="text" data-cams-par="${esc(cle)}" placeholder="${esc(camsAff(acc))}"></label>
+      <div class="cams-acts"><button class="pers-btn primary" data-cams-confirmer="${esc(cle)}">Apprendre pour ${esc(camsAff(acc))}</button><button class="pers-btn cams-ghost" data-cams-retour="${esc(cle)}">Annuler</button></div></div>` : '';
+  return `<div class="cams-grp">
+    <div class="cams-head"><b>${esc(g.camera_nom)}</b><span>${esc(camsQuand(g.debut))} · ${g.vues.length} vue${g.vues.length > 1 ? 's' : ''}${quoi}</span>${g.plaque ? `<span class="cams-plaque" title="Lue sur au moins 3 images">${esc(camsPlaque(g.plaque))}</span>` : ''}${guess}</div>
+    <div class="cams-thumbs">${g.vues.map(f => `<button class="cams-th ${out[f] ? 'out' : ''}" data-cams-vue="${esc(cle)}|${esc(f)}" title="Toucher pour écarter cette vue"><img loading="lazy" alt="Vu par la caméra" src="/api/cams/vue?p=${encodeURIComponent(g.passage)}&f=${encodeURIComponent(f)}&jeton=${encodeURIComponent(JETON)}${appQ()}"></button>`).join('')}</div>
+    <p class="note" style="margin-top:6px">Touche une vue pour l'écarter si ${visage ? 'ce n\'est pas la même personne' : 'ce n\'est pas le même'}.</p>
+    ${accord || `<div class="cams-acts">
+      ${p.nom ? `<button class="pers-btn primary" data-cams-nom="${esc(cle)}|${esc(g.genre)}|${esc(p.nom)}">C'est ${esc(camsNom(g.genre, p.nom))}</button>` : ''}
+      <select data-cams-choix="${esc(cle)}|${esc(g.genre)}" aria-label="Qui est-ce ?"><option value="">${p.nom ? (visage ? 'Quelqu\'un d\'autre…' : 'Autre chose…') : 'C\'est…'}</option>${options.filter(o => o[0] !== p.nom).map(o => `<option value="${esc(o[0])}">${esc(o[1])}</option>`).join('')}<option value="+">${visage ? '+ Nouvelle personne' : '+ Nouvelle étiquette'}</option></select>
+      ${visage ? '' : `<button class="pers-btn" data-cams-cacher="${esc(cle)}" title="Par exemple une voiture garée : le robot ne la gardera plus">Toujours ignorer</button>`}
+      <button class="pers-btn cams-ghost" data-cams-ignorer="${esc(cle)}">${visage ? 'Inconnu · ne pas apprendre' : 'Ignorer cette fois'}</button></div>`}
+  </div>`;
+}
+function camsAppris(){
+  if (camsOnglet === 'visage') return `<div class="cams-people">${(C.appris || []).map(a => `<div class="cams-person"><b>${esc(camsAff(a.nom))}</b><div>Séances avec le robot<em>${a.robot}</em></div><div>Vues des caméras apprises<em>${a.cameras}</em></div></div>`).join('')}</div>
+    <p class="note">Chaque tri devient une séance « caméra » de la personne, visible et oubliable dans Apprentissage.</p>`;
+  const liste = (C.etiquettes || {})[camsOnglet] || [];
+  if (!liste.length) return `<p class="empty" style="margin:0">Aucune étiquette pour l'instant : trie un premier passage.</p>`;
+  return `<ul class="cams-list">${liste.map(e => { const cle = camsOnglet + ':' + e.nom, conf = camsConfirme === cle;
+    const plaques = (e.plaques || []).map(pl => `<span class="cams-plaque">${esc(camsPlaque(pl))}<button class="cams-plaque-x" data-cams-plaque="${esc(cle)}|${esc(pl)}" aria-label="Retirer la plaque ${esc(camsPlaque(pl))}" title="Retirer cette plaque">×</button></span>`).join('');
+    return `<li><b>${esc(e.affiche)}</b><span>${e.exemples} exemple${e.exemples > 1 ? 's' : ''}${e.cacher ? ' · toujours ignoré' : ''}</span>${plaques}
+      <span style="margin-left:auto;display:flex;gap:6px"><button class="pers-btn" data-cams-bascule="${esc(cle)}">${e.cacher ? 'Ne plus ignorer' : 'Toujours ignorer'}</button>
+      <button class="pers-btn ${conf ? 'danger' : ''}" data-cams-oublier="${esc(cle)}">${conf ? 'Confirmer l\'oubli' : 'Oublier'}</button></span></li>`; }).join('')}</ul>`;
+}
+function camsDessiner(){
+  const racine = document.getElementById('cams-root');
+  if (!racine || !C) return;
+  if (!C.actif){ racine.innerHTML = `<p class="empty">${esc(C.manque || 'Rubrique inactive sur cette machine.')}</p>`; return; }
+  const tous = C.a_trier.filter(g => (g.genre || 'visage') === camsOnglet), groupes = tous.slice(0, 30);
+  const compte = genre => C.a_trier.filter(g => (g.genre || 'visage') === genre).length;
+  const recents = C.recents.length ? `<ul class="cams-list">${C.recents.map(r => `<li><b>${r.ignore ? 'Ignoré' : esc(r.affiche || camsAff(r.nom))}</b><span>${esc(r.camera_nom)} · ${esc(camsQuand(r.debut))}${r.vues ? ' · ' + r.vues + ' vues' : ''}</span></li>`).join('')}</ul>` : '<p class="empty" style="margin:0">Rien de trié pour l\'instant.</p>';
+  const vide = {visage: 'Rien à trier : les prochains passages devant la sonnette, la terrasse ou le robot arriveront ici.',
+                animal: 'Aucun animal à trier : les prochains passages d\'un animal arriveront ici.',
+                vehicule: 'Aucun véhicule à trier : les prochaines voitures vues par la sonnette arriveront ici.'}[camsOnglet];
+  racine.innerHTML = `<div class="cams-local"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div><b>100 % local.</b> Les images restent sur la machine. Un passage non trié est effacé après ${C.jours} jour${C.jours > 1 ? 's' : ''} ; un groupe trié est effacé tout de suite, seule l'empreinte reste.</div></div>
+    <div class="cams-tabs">${CAMS_GENRES.map(([g, t]) => `<button class="cams-tab ${g === camsOnglet ? 'on' : ''}" aria-pressed="${g === camsOnglet}" data-cams-onglet="${g}">${t} · ${compte(g)}</button>`).join('')}</div>
+    ${card('À trier', groupes.length ? groupes.map(camsGroupe).join('') + (tous.length > 30 ? `<p class="note">${tous.length - 30} autre(s) groupe(s) après ceux-ci.</p>` : '') : `<p class="empty" style="margin:0">${vide}</p>`, `<span class="badge">${tous.length}</span>`)}
+    ${card(camsOnglet === 'visage' ? 'Ce que le robot a appris' : 'Étiquettes', camsAppris())}
+    ${card('Triés récemment', recents)}`;
+}
+async function camsTrier(cle, genre, nom, extra){
+  const [passage, groupe] = cle.split(':');
+  try {
+    C = await camsPost('trier', Object.assign({passage, groupe: +groupe, nom, ecartees: Object.keys(camsOut[cle] || {}).filter(f => camsOut[cle][f])}, extra || {}));
+    delete camsOut[cle]; delete camsAccord[cle];
+    toast((extra && extra.affiche) || camsNom(genre, nom) + (genre === 'visage' ? ' : vues apprises, images effacées' : ' : un exemple de plus'));
+  } catch (err){ toast(err.message); }
+  camsDessiner();
+}
+function camsNouveau(genre){
+  const texte = (prompt(genre === 'visage' ? 'Son prénom ?' : (genre === 'animal' ? 'Son nom ? (ex. Rex, chat du voisin)' : 'Quel véhicule ? (ex. Ma voiture, Facteur)')) || '').trim();
+  if (!texte) return null;
+  const slug = camsSlug(texte);
+  if (!/^[a-z][a-z0-9-]{0,29}$/.test(slug) || slug === 'inconnu'){ toast('Un nom en lettres (30 au plus)'); return null; }
+  return {slug, affiche: texte.slice(0, 40)};
+}
+function camsChoisir(cle, genre, nom){
+  let extra = {};
+  if (nom === '+'){ const n = camsNouveau(genre); if (!n) return camsDessiner(); nom = n.slug; if (genre !== 'visage') extra.affiche = n.affiche; }
+  if (genre === 'visage' && C.accord_requis !== false && !(C.accords || []).includes(nom)){ camsAccord[cle] = nom; return camsDessiner(); }
+  return camsTrier(cle, genre, nom, extra);
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button,a'); if (!b) return;
+  if (b.dataset.nav === 'cameras') return camsCharger();
+  if (b.dataset.camsOnglet){ camsOnglet = b.dataset.camsOnglet; camsConfirme = null; return camsDessiner(); }
+  if (b.dataset.camsVue){ const [cle, f] = b.dataset.camsVue.split('|'); camsOut[cle] = camsOut[cle] || {}; camsOut[cle][f] = !camsOut[cle][f]; b.classList.toggle('out', camsOut[cle][f]); return; }
+  if (b.dataset.camsNom){ const [cle, genre, nom] = b.dataset.camsNom.split('|'); return camsChoisir(cle, genre, nom); }
+  if (b.dataset.camsCacher){
+    const genre = camsOnglet, n = camsNouveau(genre); if (!n) return;
+    return camsTrier(b.dataset.camsCacher, genre, n.slug, {affiche: n.affiche, cacher: true});
+  }
+  if (b.dataset.camsIgnorer){
+    const [passage, groupe] = b.dataset.camsIgnorer.split(':');
+    try { C = await camsPost('ignorer', {passage, groupe: +groupe}); toast('Rien appris, images effacées'); } catch (err){ toast(err.message); }
+    return camsDessiner();
+  }
+  if (b.dataset.camsBascule){
+    const [genre, nom] = b.dataset.camsBascule.split(':'), e2 = camsEtiq(genre, nom);
+    try { C = await camsPost('etiquette', {genre, nom, cacher: !(e2 && e2.cacher)}); } catch (err){ toast(err.message); }
+    return camsDessiner();
+  }
+  if (b.dataset.camsOublier){
+    if (camsConfirme !== b.dataset.camsOublier){ camsConfirme = b.dataset.camsOublier; return camsDessiner(); }
+    const [genre, nom] = b.dataset.camsOublier.split(':'); camsConfirme = null;
+    try { C = await camsPost('etiquette', {genre, nom, oublier: true}); toast('Étiquette oubliée'); } catch (err){ toast(err.message); }
+    return camsDessiner();
+  }
+  if (b.dataset.camsPlaque){
+    const [cle, plaque] = b.dataset.camsPlaque.split('|'), [genre, nom] = cle.split(':');
+    try { C = await camsPost('etiquette', {genre, nom, retirer_plaque: plaque}); toast('Plaque retirée'); } catch (err){ toast(err.message); }
+    return camsDessiner();
+  }
+  if (b.dataset.camsRetour){ delete camsAccord[b.dataset.camsRetour]; return camsDessiner(); }
+  if (b.dataset.camsConfirmer){
+    const cle = b.dataset.camsConfirmer, ok = document.querySelector(`[data-cams-ok="${CSS.escape(cle)}"]`), par = document.querySelector(`[data-cams-par="${CSS.escape(cle)}"]`);
+    if (!ok || !ok.checked) return toast('Coche l\'accord de la personne d\'abord');
+    if (!par || !par.value.trim()) return toast('Qui donne l\'accord ?');
+    return camsTrier(cle, 'visage', camsAccord[cle], {accord: true, par: par.value.trim()});
+  }
+});
+document.addEventListener('change', e => { const s = e.target.closest('[data-cams-choix]'); if (s && s.value){ const [cle, genre] = s.dataset.camsChoix.split('|'); camsChoisir(cle, genre, s.value); } });
+function camerasVue(){
+  setTimeout(camsCharger, 0);
+  return `<div id="cams-root"><p class="empty">Chargement…</p></div>`;
+}
+</script>
+<!-- CAMÉRAS : fin -->
+<!-- APPRENTISSAGE : fin -->
+<!-- BADGES : début (16/10/2026) : les badges NFC de la porte. Préfixe badg-. Logique : reachy_badges.py -->
+<style>
+.badg-etat{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s4)}
+.badg-faint{color:var(--faint);font-size:12.5px}
+.app-form{display:grid;gap:var(--s2);max-width:360px;margin-top:var(--s3)}
+.app-form label{font-weight:600;margin-top:var(--s2)}
+.app-form input{padding:8px 10px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface-2);font:inherit}
+.badg-new{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
+.badg-new input{padding:8px 10px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface-2);width:170px;font:inherit}
+.badg-wait{margin-top:var(--s4);padding:var(--s3) var(--s4);border-radius:var(--r-sm);background:var(--accent-soft);font-size:14px}
+.badg-wait.ko{background:var(--warn-soft)}
+.badg-code{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+#badg-root .rows{padding:0}
+</style>
+<script>
+'use strict';
+/* Rubrique Badges : la liste vit dans Home Assistant (liste Local To-do déclarée dans le corps) ; c'est HA qui ouvre la porte.
+   La page ne voit jamais un identifiant entier (deux derniers caractères seulement). */
+let BADG = null, badgBusy = false, badgConfirme = '', badgErreur = '';
+const badgQuand = t => { try { return new Date(t).toLocaleString('fr-FR', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}); } catch (_) { return ''; } };
+async function badgPost(chemin, corps){
+  const r = await fetch('/api/badges/' + chemin, {method:'POST', cache:'no-store',
+    headers:{'Content-Type':'application/json', 'X-Reachy-Jeton': JETON}, body: JSON.stringify(corps || {})});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(perimee(r, data) || data.erreur || ('erreur ' + r.status));
+  return data;
+}
+function badgCorps(){
+  if (!BADG) return '<p class="empty" style="margin:0">Lecture de Home Assistant…</p>';
+  const ha = BADG.ha, a = BADG.apprentissage, d = BADG.dernier;
+  const etat = ha.disponible ? '<span class="pill ok"><span class="dot"></span>Home Assistant répond</span>'
+    : `<span class="pill warn"><span class="dot"></span>${esc(ha.erreur || 'Home Assistant ne répond pas')}</span>`;
+  const dernier = d ? `<span class="badg-faint">Dernier badge lu : ${d.nom ? '<b>' + esc(d.nom) + '</b>' : 'inconnu'} <span class="badg-code">${esc(d.badge)}</span>, ${esc(badgQuand(d.quand))}</span>` : '';
+  const lignes = BADG.badges.length ? BADG.badges.map(b => `<div class="row"><div><div class="row-label">${esc(b.nom)}${src('ha')}</div><div class="row-help"><span class="badg-code">${esc(b.badge)}</span>${b.actif ? '' : ' · suspendu (coché dans Home Assistant)'}${b.valide ? '' : ' · identifiant illisible'}</div></div><div class="row-ctl"><span class="badge${b.actif && b.valide ? ' ok' : ' warn'}">${b.actif && b.valide ? 'ouvre' : 'n\'ouvre pas'}</span>${R.ecriture ? (badgConfirme === b.uid ? `<button class="pers-btn" data-badg-garder>Garder</button><button class="pers-btn danger" data-badg-retirer="${esc(b.uid)}" data-badg-sur>Confirmer le retrait</button>` : `<button class="pers-btn danger" data-badg-retirer="${esc(b.uid)}">Retirer</button>`) : ''}</div></div>`).join('')
+    : '<div class="row"><div><div class="row-label">Aucun badge</div><div class="row-help">Aucun badge n\'ouvre l\'entrée pour l\'instant.</div></div><div class="row-ctl"><span class="badge">vide</span></div></div>';
+  let appr = '';
+  if (a && a.statut === 'attente') appr = `<div class="badg-wait" role="status"><b>${esc(a.message)}</b><br>Il reste ${a.reste} s. <button class="pers-link" data-badg-annuler>Annuler</button></div>`;
+  else if (a) appr = `<div class="badg-wait${a.statut === 'ajoute' ? '' : ' ko'}" role="status">${esc(a.message)} <button class="pers-link" data-badg-annuler>Fermer</button></div>`;
+  const ajout = R.ecriture && !(a && a.statut === 'attente') ? `<div class="badg-new"><input type="text" id="badg-nom" maxlength="30" placeholder="Prénom" autocomplete="off" aria-label="Prénom du porteur du badge"><button class="pers-btn primary" data-badg-apprendre>Apprendre un badge</button></div>` : '';
+  const err = badgErreur ? `<div class="badg-wait ko" role="alert">${esc(badgErreur)}</div>` : '';
+  return `<div class="badg-etat">${etat}${dernier}</div>${err}<div class="rows">${lignes}</div>
+    <div style="margin-top:var(--s4)">${ajout}${appr}</div>`;
+}
+let APPAREILS = null;
+async function appLit(){
+  try { const r = await fetch('/api/appareils', {cache: 'no-store'}); if (r.ok) APPAREILS = (await r.json()).appareils; } catch (_) {}
+  const root = document.getElementById('appareils-root');
+  if (root) root.innerHTML = appCorps();
+}
+const appDate = s => s ? new Date(s * 1000).toLocaleString('fr-FR', {dateStyle: 'short', timeStyle: 'short'}) : '?';
+function appCorps(){
+  if (!APPAREILS) return '<p class="empty" style="margin:0">Lecture…</p>';
+  return `<div class="rows">${APPAREILS.map(a => `<div class="row"><div><div class="row-label">${esc(a.nom)}${a.moi ? ' · cet appareil' : ''}</div>
+    <div class="row-help">appairé le ${esc(appDate(a.cree))} · vu le ${esc(appDate(a.vu))}</div></div>
+    <div class="row-ctl"><button class="pers-btn danger" type="button" data-app-revoquer="${esc(a.id)}" data-app-moi="${a.moi ? 1 : 0}">Révoquer</button></div></div>`).join('')}</div>`;
+}
+function appareilsVue(){
+  setTimeout(appLit, 0);
+  return `<div class="card"><div class="card-title"><span>Appareils appairés</span></div><div class="card-body" id="appareils-root">${appCorps()}</div></div>`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-app-revoquer]');
+  if (!b) return;
+  const r = await fetch('/api/appareils/revoquer', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Reachy-Jeton': JETON},
+                                                    body: JSON.stringify({id: b.dataset.appRevoquer})});
+  if (r.ok && b.dataset.appMoi === '1') { try { localStorage.removeItem('reachy-appareil'); } catch (_) {} location.reload(); return; }
+  appLit();
+});
+
+function badgesVue(){
+  const link = R.ha && BADG && BADG.liste ? `<a class="ha-link" href="${esc(R.ha)}/todo?entity_id=${encodeURIComponent(BADG.liste)}" target="_blank" rel="noopener">Voir la liste dans Home Assistant ↗</a>` : '';
+  setTimeout(badgLit, 0);
+  return `<div class="card"><div class="card-title"><span>Badges qui ouvrent la porte${src('ha')}</span>${link}</div><div class="card-body" id="badg-root">${badgCorps()}</div></div>
+    <p class="mais-pied">Rien n'est enregistré chez UniFi : la sonnette lit le badge, Home Assistant compare avec cette liste et ouvre la gâche (même robot éteint). De nuit, le porche et la lumière extérieure de la cuisine s'allument 5 minutes. Un badge perdu : « Retirer ». L'identifiant d'un badge NFC simple peut se copier : c'est la sécurité d'un badge d'immeuble.</p>`;
+}
+function badgDessiner(){ const el = document.getElementById('badg-root'); if (el) el.innerHTML = badgCorps(); }
+async function badgLit(){
+  if (badgBusy || document.hidden || typeof R === 'undefined' || !R) return;
+  badgBusy = true;
+  try { const r = await fetch('/api/badges', {cache:'no-store'}); if (r.ok) BADG = await r.json(); } catch (_) {}
+  badgBusy = false;
+  // pendant la saisie d'un prénom, ne pas effacer le champ
+  const champ = document.getElementById('badg-nom');
+  if (champ && document.activeElement === champ && !(BADG && BADG.apprentissage && BADG.apprentissage.statut === 'attente')) return;
+  badgDessiner();
+}
+setInterval(() => {
+  if (typeof current === 'undefined' || current !== 'badges') return;
+  if (BADG && BADG.apprentissage && BADG.apprentissage.statut === 'attente') badgLit();
+}, 1500);
+setInterval(() => { if (typeof current !== 'undefined' && current === 'badges') badgLit(); }, 15000);
+document.addEventListener('click', async e => {
+  if (e.target.closest('[data-nav="badges"]')) return badgLit();
+  const b = e.target.closest('[data-badg-apprendre],[data-badg-annuler],[data-badg-retirer],[data-badg-garder]');
+  if (!b) return;
+  badgErreur = '';
+  if (b.hasAttribute('data-badg-garder')) { badgConfirme = ''; return badgDessiner(); }
+  // Retrait en deux temps dans la page : confirm() est bloqué quand la page est dans un cadre de Home Assistant.
+  if (b.hasAttribute('data-badg-retirer') && !b.hasAttribute('data-badg-sur')) { badgConfirme = b.dataset.badgRetirer; return badgDessiner(); }
+  try {
+    if (b.hasAttribute('data-badg-apprendre')){
+      const nom = (document.getElementById('badg-nom') || {}).value || '';
+      if (!nom.trim()) { document.getElementById('badg-nom').focus(); return; }
+      BADG = await badgPost('apprendre', {nom});
+    } else if (b.hasAttribute('data-badg-annuler')){
+      BADG = await badgPost('annuler', {});
+    } else {
+      BADG = await badgPost('retirer', {uid: b.dataset.badgRetirer});
+      badgConfirme = '';
+    }
+  } catch (err) { badgErreur = err.message; badgConfirme = ''; }
+  badgDessiner();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'badg-nom') document.querySelector('[data-badg-apprendre]')?.click(); });
+window.addEventListener('hashchange', () => { if (location.hash === '#badges') badgLit(); });
+</script>
+<!-- BADGES : fin -->
+<!-- MAISON : début -->
+<style>
+/* Rubrique Maison (lot 6, lecture seule) — préfixe mais- ; couleurs et espacements = ceux de la page */
+.mais-etat{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s4)}
+.mais-age{color:var(--faint);font-size:12.5px}
+.mais-publie{margin:0;font-weight:600;overflow-wrap:anywhere}
+.mais-publie.vide{color:var(--faint);font-weight:500}
+.mais-groupe{padding-top:var(--s3);font-size:12.5px;font-weight:650;text-transform:uppercase;letter-spacing:.04em;color:var(--faint)}
+.mais-pied{color:var(--muted);font-size:13.5px;margin:var(--s4) 0 0}
+.mais-tags{display:inline-flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+#mais-corps > .rows{padding:0}                 /* déjà dans le corps de la carte : pas de double marge (12/10) */
+#mais-corps .mais-etat .pill{white-space:normal}
+@media (max-width:860px){ .mais-tags{justify-content:flex-start} }
+</style>
+<script>
+'use strict';
+/* Rubrique Maison : l'état des automatisations du robot dans Home Assistant, EN LECTURE SEULE.
+   Lu par le corps (GET /api/maison/etat, mis en cache 30 s) ; la page marche sans Home Assistant. */
+let MAIS = null;                       // la dernière lecture, ou null
+let maisBusy = false;
+const MAIS_ETAT = {on:['Active','ok'], off:['Coupée','warn'], indisponible:['Indisponible','warn'], absente:['Introuvable dans HA','warn'], inconnu:['Inconnu','']};
+function maisLigne(a){
+  const [txt, kind] = MAIS_ETAT[a.etat] || [a.etat, ''];
+  return `<div class="row" data-mais="${esc(a.id)}"><div><div class="row-label">${esc(a.intitule)}${src('ha')}</div><div class="row-help">${esc(a.aide)}</div></div><div class="row-ctl"><span class="mais-tags">${a.sonore?'<span class="badge info" title="Cette automatisation fait du son">sonore</span>':''}<span class="badge${kind?' '+kind:''}">${txt}</span></span></div></div>`;
+}
+function maisCorps(){
+  if (!MAIS) return '<p class="empty" style="margin:0">Lecture de Home Assistant…</p>';
+  const ha = MAIS.ha, groupes = [...new Set(MAIS.automatisations.map(a => a.groupe))];
+  const etat = ha.disponible
+    ? `<span class="pill ok"><span class="dot"></span>Home Assistant répond</span><span class="mais-age">lu il y a ${Math.round(ha.age)} s</span>`
+    : `<span class="pill warn"><span class="dot"></span>${esc(ha.erreur || 'Home Assistant ne répond pas')}</span><span class="mais-age">Le robot fonctionne sans lui ; les états reviendront tout seuls.</span>`;
+  const auto = groupes.map(g => `<div class="mais-groupe">${esc(g)}</div><div class="rows">${MAIS.automatisations.filter(a => a.groupe === g).map(maisLigne).join('')}</div>`).join('');
+  const publie = MAIS.publie.map(p => `<div class="row" data-mais="${esc(p.id)}"><div><div class="row-label">${esc(p.intitule)}${src('robot')}</div><div class="row-help">${esc(p.aide)}</div></div><div class="row-ctl"><p class="mais-publie${p.valeur ? '' : ' vide'}">${p.valeur ? esc(p.valeur) : '—'}</p></div></div>`).join('');
+  return `<div class="mais-etat">${etat}</div>${auto}<div class="card" style="margin-top:var(--s4)"><div class="card-title"><span>Publié par le robot${src('robot')}</span></div><div class="rows">${publie}</div></div>`;
+}
+function maison(){
+  const link = R.ha ? `<a class="ha-link" href="${esc(R.ha)}/config/automation/dashboard" target="_blank" rel="noopener">Ouvrir dans Home Assistant ↗</a>` : '';
+  setTimeout(maisLit, 0);              // dès que la rubrique est dans la page
+  return `<div class="card"><div class="card-title"><span>Automatisations du robot${src('ha')}</span>${link}</div><div class="card-body" id="mais-corps">${maisCorps()}</div></div>
+    <p class="mais-pied">Cette page ne fait que lire : pour activer ou couper une automatisation, ouvrir Home Assistant.${R.ha ? '' : ' (L\'adresse de Home Assistant n\'est pas configurée dans le corps : pas de lien.)'}</p>`;
+}
+async function maisLit(){
+  if (maisBusy || document.hidden || typeof R === 'undefined' || !R) return;
+  maisBusy = true;
+  try {
+    const r = await fetch('/api/maison/etat', {cache:'no-store'});
+    if (r.ok) MAIS = await r.json();
+  } catch (_) { /* le corps ne répond pas : on garde la dernière lecture */ }
+  maisBusy = false;
+  const el = document.getElementById('mais-corps'); if (el) el.innerHTML = maisCorps();
+}
+setInterval(() => { if (typeof current !== 'undefined' && current === 'maison') maisLit(); }, 15000);
+document.addEventListener('click', e => { if (e.target.closest('[data-nav="maison"]')) maisLit(); });
+window.addEventListener('hashchange', () => { if (location.hash === '#maison') maisLit(); });
+</script>
+<!-- MAISON : fin -->
+
+<script>
+'use strict';
+const JETON = '__JETON__';            // posé par le serveur à chaque ouverture de la page (anti-CSRF)
+/* APPAIRAGE (18/10) : chaque appareil s'appaire une fois (code dit par le robot) et garde son jeton ici. Il part avec
+   chaque demande /api (en-tête), ou en paramètre pour une image. Sans lui, la page ne montre que l'appairage. */
+let APPAREIL = '';
+try { APPAREIL = localStorage.getItem('reachy-appareil') || ''; } catch (_) {}
+const fetchBrut = window.fetch.bind(window);
+window.fetch = (url, opts = {}) => {
+  const api = typeof url === 'string' && url.startsWith('/api');
+  if (api && APPAREIL) opts = Object.assign({}, opts, {headers: Object.assign({}, opts.headers || {}, {'X-Reachy-Appareil': APPAREIL})});
+  return fetchBrut(url, opts).then(r => {
+    if (api && r.status === 401 && !url.startsWith('/api/appairage')) appairageMontrer();
+    return r;
+  });
+};
+const appQ = () => APPAREIL ? '&appareil=' + encodeURIComponent(APPAREIL) : '';
+const ICON = {
+  live:'<circle cx="12" cy="12" r="3"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7"/>',
+  voir:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  parler:'<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
+  entendre:'<path d="M6 8.5a6 6 0 1 1 10.4 4.1c-1.1 1.2-2.4 2-2.4 3.9a3 3 0 0 1-5.6 1.5"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0"/>',
+  toucher:'<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11.5V4a1.5 1.5 0 0 1 3 0v8M14 7.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5a6 6 0 0 1-5-2.7L3 15.5a1.6 1.6 0 0 1 2.6-1.8L8 16"/>',
+  bouger:'<path d="M5 12h14M12 5l7 7-7 7"/>',
+  piece:'<path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-6h6v6"/>',
+  personnes:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.2A5 5 0 0 1 21.5 19"/>',
+  apprendre:'<path d="M3 8.5 12 4l9 4.5-9 4.5z"/><path d="M7 10.5v4.5c0 1.4 2.2 3 5 3s5-1.6 5-3v-4.5M21 8.5v5"/>',
+  cameras:'<path d="M3 8h3l2-3h8l2 3h3v11H3z"/><circle cx="12" cy="13" r="3.5"/>',
+  badges:'<circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.7-8.7M16 7l2.5 2.5M18.5 4.5 21 7"/>',
+  maison:'<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
+  appareils:'<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M11 18h2"/>',
+  chevron:'<path d="m9 6 6 6-6 6"/>'
+};
+const ico = (n, s=18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[n]}</svg>`;
+const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* les rubriques, toujours dans cet ordre (choix initial, 11/10) ; regroupées dans la barre (refonte du 12/10) */
+const GROUPES = {robot:'Le robot', gens:'Les personnes', maison:'La maison', acces:'Accès'};
+const SECTIONS = [
+  {id:'live',      title:'En direct', groupe:'robot', intro:"Ce que le robot voit, entend et ressent en ce moment. Rien à régler ici."},
+  {id:'voir',      title:'Voir',      groupe:'robot', intro:"La caméra : suivre une personne du regard et reconnaître les visages connus."},
+  {id:'entendre',  title:'Entendre',  groupe:'robot', intro:"Se tourner vers une voix, et d'où viennent les voix."},
+  {id:'parler',    title:'Parler',    groupe:'robot', intro:"Le volume de sa voix, le jour et le soir. Ce que tu règles ici est gardé par le robot, même après un redémarrage."},
+  {id:'toucher',   title:'Toucher',   groupe:'robot', intro:"Ce qui se passe quand on touche ses antennes, sa tête ou son corps."},
+  {id:'bouger',    title:'Bouger',    groupe:'robot', intro:"Petits gestes au repos, sommeil, mode éco, et l'état de ses moteurs."},
+  {id:'piece',     title:'Pièce',     groupe:'robot', intro:"Où sont les choses autour du robot, et les directions à ignorer."},
+  {id:'personnes', title:'Personnes', groupe:'gens', intro:"Les personnes que le robot reconnaît, à la voix ou au visage."},
+  {id:'apprendre', title:'Apprentissage', groupe:'gens', intro:"Apprendre au robot un visage et une voix, séance par séance. Tout reste dans le robot."},
+  {id:'cameras',   title:'Caméras',   groupe:'gens', intro:"Ce que les caméras de la maison ont vu : tu dis qui c'est, le robot apprend à reconnaître la famille vue de dehors."},
+  {id:'maison',    title:'Maison',    groupe:'maison', intro:"Ce que Home Assistant fait avec le robot : accueils, sonnette, télé."},
+  {id:'badges',    title:'Badges',    groupe:'maison', intro:"Les badges NFC qui ouvrent la porte. La liste est gardée dans Home Assistant, jamais chez UniFi."},
+  {id:'appareils', title:'Appareils', groupe:'acces', intro:"Les appareils qui peuvent ouvrir cette page. Révoquer un appareil le renvoie à l'appairage."},
+];
+const SRC = {robot:['Robot','<rect x="5" y="7" width="14" height="11" rx="4"/><path d="M9 4l1 3M15 4l-1 3"/><circle cx="9.5" cy="12.5" r="1" fill="currentColor"/><circle cx="14.5" cy="12.5" r="1" fill="currentColor"/>'],
+             ha:['HA','<path d="M4 11 12 4l8 7v9H4z"/><circle cx="12" cy="14" r="2"/>']};
+const src = (k='robot') => `<span class="src${k==='ha'?' ha':''}" title="${k==='ha'?'Réglé dans Home Assistant':'Réglé dans le robot'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SRC[k][1]}</svg>${SRC[k][0]}</span>`;
+
+let R = null;          // {schema, valeurs, manque, ecriture, ha}
+let E = null;          // le dernier instantané du corps
+const BY = {};         // clé → entrée du schéma
+
+/* ---------- formats ---------- */
+const decimals = r => (String(r.pas ?? 1).split('.')[1] || '').length;
+const num = (v, r) => Number(v).toFixed(decimals(r)).replace('.', ',');
+const withUnit = (n, u) => !u ? n : (u.startsWith('°') ? n + u : `${n} ${u}`);
+function fmt(v, r){
+  if (r.type === 'plage') return `${num(v[0],r)}–${num(v[1],r)} ${r.unite}`;
+  if (r.affiche) return withUnit(String(Math.round(v * r.affiche)), r.unite);   // fraction gardée, montrée en %
+  return withUnit(num(v, r), r.unite);
+}
+const pct = (v, r) => ((v - r.min) / (r.max - r.min) * 100) + '%';
+const deg = d => (d < 0 ? '−' : d > 0 ? '+' : '') + Math.abs(Math.round(d)) + '°';
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/* ---------- une ligne de réglage (une seule forme) ---------- */
+function disabledFor(r){
+  if (!R.ecriture) return true;
+  if (R.manque[r.cle]) return true;
+  if (r.depend && !R.valeurs[r.depend]) return true;
+  return false;
+}
+function control(r){
+  const v = R.valeurs[r.cle], dis = disabledFor(r) ? 'disabled' : '', label = esc(r.intitule);
+  switch (r.type){
+    case 'interrupteur': return `<div class="line"><span class="sw-state">${v?'Actif':'Coupé'}</span><label class="sw"><input type="checkbox" data-id="${r.cle}" ${v?'checked':''} ${dis} aria-label="${label}"><span></span></label></div>`;
+    case 'nombre': return `<div class="line"><input type="range" data-id="${r.cle}" min="${r.min}" max="${r.max}" step="${r.pas}" value="${v}" style="--p:${pct(v,r)}" ${dis} aria-label="${label}"><span class="val" data-val="${r.cle}">${fmt(v,r)}</span></div>`;
+    case 'plage': return `<div class="line"><div class="pair"><span>de</span><input type="range" data-id="${r.cle}" data-i="0" min="${r.min}" max="${r.max}" step="${r.pas}" value="${v[0]}" style="--p:${pct(v[0],r)}" ${dis} aria-label="${label} : minimum"><span>à</span><input type="range" data-id="${r.cle}" data-i="1" min="${r.min}" max="${r.max}" step="${r.pas}" value="${v[1]}" style="--p:${pct(v[1],r)}" ${dis} aria-label="${label} : maximum"></div><span class="val" data-val="${r.cle}">${fmt(v,r)}</span></div>`;
+    case 'heure': return `<div class="line"><input type="time" data-id="${r.cle}" value="${esc(v)}" ${dis} aria-label="${label}"></div>`;
+    case 'choix': return `<div class="line"><select class="choix" data-id="${r.cle}" ${dis} aria-label="${label}">${r.options.map(([k, t]) => `<option value="${esc(k)}" ${k === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>${r.ecouter ? `<button class="reset" type="button" data-parl-ecouter="${esc(r.ecouter)}" ${dis}>Écouter</button>` : ''}${r.voir ? `<button class="reset" type="button" data-parl-voir="${esc(r.cle)}" ${dis}>Voir</button>` : ''}</div>`;
+  }
+  return '';
+}
+function row(r){
+  const changed = R.ecriture && r.origine !== null && r.origine !== undefined && !same(R.valeurs[r.cle], r.origine);
+  const reset = changed && !disabledFor(r) ? `<button class="reset" data-reset="${r.cle}">Valeur d'origine</button>` : '';
+  const why = R.manque[r.cle] ? `<div class="row-help">Indisponible : ${({regard:'aucune caméra configurée', visages:'aucun dossier de visages configuré', sons:'aucun assistant vocal configuré'})[R.manque[r.cle]] || 'non configuré'}.</div>` : '';
+  return `<div class="row${r.type==='interrupteur'?' row-switch':''}${R.manque[r.cle] || (r.depend && !R.valeurs[r.depend]) ? ' off' : ''}" data-row="${r.cle}"><div><div class="row-label">${esc(r.intitule)}${src()}</div><div class="row-help">${esc(r.aide)}</div>${why}</div><div class="row-ctl">${control(r)}${reset}</div></div>`;
+}
+const card = (title, body, extra='', from='robot') => `<div class="card"><div class="card-title"><span>${title}${from?src(from):''}</span>${extra}</div><div class="card-body">${body}</div></div>`;
+function haCard(lines, path){
+  const link = R.ha ? `<a class="ha-link" href="${esc(R.ha + path)}" target="_blank" rel="noopener">Ouvrir dans Home Assistant ↗</a>` : '';
+  return `<div class="card"><div class="card-title"><span>Dans Home Assistant${src('ha')}</span>${link}</div><div class="rows">${lines.map(([t, h]) => `<div class="row"><div><div class="row-label">${t}${src('ha')}</div><div class="row-help">${h}</div></div><div class="row-ctl"><span class="ro"><small>se règle dans Home Assistant</small></span></div></div>`).join('')}</div></div>`;
+}
+function settings(id, opts={}){
+  const list = R.schema.filter(r => r.rubrique === id && r.type !== 'secteurs');
+  const essentials = list.filter(r => r.niveau === 'essentiel'), expert = list.filter(r => r.niveau === 'expert');
+  // Une carte par groupe de réglages essentiels (titre = le groupe ; sans groupe : une carte sans titre, comme avant).
+  const cartes = [];
+  for (const r of essentials){ const g = r.groupe || ''; let c = cartes.find(x => x.g === g); if (!c) cartes.push(c = {g, l: []}); c.l.push(r); }
+  let html = cartes.map(c => `<div class="card">${c.g ? `<div class="card-title"><span>${esc(c.g)}${src()}</span></div>` : ''}<div class="rows">${c.l.map(row).join('')}</div></div>`).join('');
+  if (opts.after) html += opts.after;
+  if (opts.ha) html += haCard(opts.ha, opts.haPath || '/config/entities');
+  if (expert.length){
+    let body = '', group = null, buf = [];
+    const flush = () => { if (buf.length) body += `${group?`<div class="group">${esc(group)}</div>`:''}<div class="rows">${buf.map(row).join('')}</div>`; buf = []; };
+    for (const r of expert){ if (r.groupe !== group){ flush(); group = r.groupe; } buf.push(r); }
+    flush();
+    html += `<details class="expert" data-expert="${id}"><summary>${ico('chevron',16)}Réglages d'expert <span class="badge">${expert.length}</span></summary>${body}</details>`;
+  }
+  return html;
+}
+
+/* ---------- en direct ---------- */
+function live(){
+  return `<div class="live">
+    <div>${card('Caméra', `<div class="cam" id="cam"><img id="cam-img" alt="Dernière image de la caméra du robot" hidden><svg class="over" id="cam-over" viewBox="-1 -1 2 2" preserveAspectRatio="none" aria-hidden="true"></svg><div class="cam-empty" id="cam-empty">Pas d'image pour l'instant</div><div class="cam-tag"><span class="badge" id="cam-tag">Caméra</span></div></div>`)}
+      ${card('Ce qu\'il pense', `<p class="aware" id="aware">…</p><div class="aware-meta">Mise à jour en direct · publiée aussi dans Home Assistant</div>`)}
+      ${card('Journal', `<ul class="log" id="log"><li class="empty">Rien pour l'instant</li></ul>`)}
+    </div>
+    <div>
+      ${card('État', `<div class="status-list">
+        <div class="status-item"><b>Éveil${src()}</b><span id="st-eveil">…</span></div>
+        <div class="status-item"><b>Micro${src()}</b><span id="st-micro">…</span></div>
+        <div class="status-item"><b>Mode éco${src('ha')}</b><span id="st-eco">…</span></div>
+        <div class="status-item"><b>Activité${src()}</b><span id="st-etat">…</span></div>
+      </div>`, '', null)}
+      ${card('Son et regard', `<div class="compass" id="compass"></div><div class="legend" id="compass-legend"></div>`)}
+      ${card('Humeur', `<div class="mood-label" id="mood-word">…</div><div class="gauges">${[['plaisir','Plaisir'],['eveil','Éveil'],['lien','Lien']].map(([k,t])=>`<div class="gauge"><span>${t}</span><div class="gauge-bar"><div class="gauge-fill" data-g="${k}"></div></div><span class="gauge-num" data-gn="${k}"></span></div>`).join('')}</div><div class="note">Trois jauges de −1 à +1, toujours ramenées au calme avec le temps.</div>`)}
+    </div>
+  </div>`;
+}
+function compassSvg(e){
+  const cx=200, cy=190, Rr=160, lim = e ? e.limite : 50;
+  const pt = (d, r=Rr) => [cx - r*Math.sin(d*Math.PI/180), cy - r*Math.cos(d*Math.PI/180)];
+  const arc = (a, b, r=Rr) => { const [x1,y1]=pt(a,r),[x2,y2]=pt(b,r); return `M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 0 ${a>b?1:0} ${x2.toFixed(1)},${y2.toFixed(1)} Z`; };
+  const ticks = [-90,-45,0,45,90].map(d=>{const [x1,y1]=pt(d,Rr),[x2,y2]=pt(d,Rr-8),[tx,ty]=pt(d,Rr+14);return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--faint)"/><text x="${tx}" y="${ty+4}" text-anchor="middle" font-size="11" fill="var(--faint)">${d>0?'+':''}${d}°</text>`}).join('');
+  const ignored = (e ? e.ignorer : []).map(([a,b]) => `<path d="${arc(Math.min(90,Math.max(a,b)),Math.max(-90,Math.min(a,b)),Rr-18)}" fill="var(--bad)" opacity=".18"/>`).join('');
+  let rays = '';
+  if (e && e.voix && e.voix.age < 120){ const [x,y]=pt(e.voix.angle); rays += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--warn)" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 7"/><circle cx="${x}" cy="${y}" r="6" fill="var(--warn)"/>`; }
+  if (e){ const [x,y]=pt(e.regard.lacet, Rr-30); rays += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/>`; }
+  return `<svg viewBox="0 0 400 214" role="img" aria-label="Direction du son et du regard, vue de dessus">
+    <path d="${arc(90,-90)}" fill="var(--surface-2)"/><path d="${arc(lim,-lim)}" fill="var(--accent-soft)" opacity=".7"/>${ignored}${ticks}${rays}
+    <circle cx="${cx}" cy="${cy}" r="16" fill="var(--surface)" stroke="var(--text)" stroke-width="2"/></svg>`;
+}
+
+/* ---------- toucher, bouger, pièce, personnes, maison ---------- */
+const touches = () => card('Derniers touchers', `<ul class="log" id="touches"><li class="empty">Aucun depuis le démarrage</li></ul>`);
+const motors = () => card('Moteurs', `<div class="motors" id="motors"></div><div class="note" id="motors-note">Position réelle, relevée par le corps quand il guette un toucher.</div>`, '<span class="badge" id="motors-badge">…</span>');
+function piece(){
+  const list = R.valeurs.ignorer || [];
+  const rows = list.length ? list.map(([a,b]) => `<div class="row"><div><div class="row-label">De ${deg(a)} à ${deg(b)}</div><div class="row-help">Ni les voix ni les visages de cette direction ne comptent.</div></div><div class="row-ctl"><span class="badge">ignorée</span></div></div>`).join('')
+    : `<div class="row"><div><div class="row-label">Aucune direction ignorée</div><div class="row-help">Toutes les voix et tous les visages comptent.</div></div><div class="row-ctl"><span class="badge">vide</span></div></div>`;
+  return card('Vu de dessus', `<div class="compass" id="plan">${compassSvg(Object.assign({}, E || {regard:{lacet:0}, limite:50}, {ignorer:list, voix:null}))}</div><div class="note">Le robot est en bas, face vers le haut. En rouge : les directions ignorées.</div>`)
+    + `<div class="card"><div class="card-title"><span>Directions ignorées${src()}</span></div><div class="rows">${rows}</div><div class="card-body" style="padding-top:0"><div class="note">L'ajout et le retrait arriveront avec l'assistant « Calibrer la pièce ».</div></div></div>`;
+}
+const soon = (title, text) => card(title, `<p class="empty" style="margin:0">${text}</p>`);
+/* maison() : voir le bloc « MAISON » plus haut (lecture seule, lot 6). */
+
+/* ---------- assemblage ---------- */
+function render(){
+  // La barre : les rubriques regroupées (Le robot, Les personnes, La maison), dans l'ordre de SECTIONS.
+  // Sur mobile, la même barre devient un tiroir (bouton « ☰ » de l'en-tête).
+  const groupes = Object.keys(GROUPES).map(g => [g, SECTIONS.filter(s => s.groupe === g)]).filter(([, l]) => l.length);
+  document.getElementById('nav').innerHTML = `<div class="nav-head"><b>Rubriques</b><button class="icon-btn" type="button" id="nav-close" aria-label="Fermer les rubriques"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>` +
+    groupes.map(([g, l]) => `<div class="nav-group" role="group" aria-labelledby="ng-${g}"><div class="nav-label" id="ng-${g}">${GROUPES[g]}</div>${l.map(s => `<a href="#${s.id}" data-nav="${s.id}">${ico(s.id)}<span>${s.title}</span></a>`).join('')}</div>`).join('') +
+    `<div class="side-foot"><p>${R.ecriture ? 'Chaque changement est enregistré tout de suite et appliqué sans redémarrer.' : 'Lecture seule : les réglages s\'affichent, ils ne se changent pas encore ici.'}</p>
+      <div class="legend-src" aria-label="Légende des sources"><span>${src()}réglé dans le robot</span><span>${src('ha')}réglé dans Home Assistant</span></div></div>`;
+  const body = {
+    live: live(),
+    voir: settings('voir'),
+    entendre: settings('entendre', {ha: [["Fin de phrase", "Combien de silence avant de considérer que la phrase est finie."]]}),
+    parler: parlerVue(),                            // 11/10 : bloc PARLER plus haut
+    toucher: settings('toucher', {after: touches()}),
+    bouger: settings('bouger', {after: motors(), ha: [["Mode éco automatique", "Actif la nuit, ou quand les panneaux solaires ne produisent pas."], ["Mode éco maintenant", "L'état du mode éco ; le robot le suit (voir « En direct »)."]]}),
+    piece: piece(),
+    personnes: personnesVue() + settings('personnes'),   // lot 5 : bloc PERSONNES plus haut ; 11/10 : « Demander l'accord »
+    apprendre: apprendreVue(),                      // 11/10 : bloc APPRENTISSAGE plus haut
+    cameras: camerasVue() + settings('cameras'),    // 11/10 : bloc CAMÉRAS plus haut
+    badges: badgesVue(),                            // 16/10 : bloc BADGES plus haut
+    appareils: appareilsVue(),                      // 18/10 : les appareils appairés
+    maison: maison(),
+  };
+  const open = [...document.querySelectorAll('details.expert[open]')].map(d => d.dataset.expert);
+  document.getElementById('main').innerHTML =
+    SECTIONS.map(s=>`<section class="section" id="sec-${s.id}" aria-labelledby="h-${s.id}"><div class="sec-head"><p class="sec-kicker">${GROUPES[s.groupe] || ''}</p><h2 id="h-${s.id}">${s.title}</h2><p>${s.intro}</p></div>${body[s.id]}</section>`).join('') +
+    `<nav class="pager" id="pager" aria-label="Rubrique précédente ou suivante"></nav>`;
+  open.forEach(id => { const d = document.querySelector(`details[data-expert="${id}"]`); if (d) d.open = true; });
+  show(location.hash.slice(1));
+  if (E) paint(E);
+  if (current === 'parler') parlLit();
+  asstMonter();                       // lot 4 : cartes « Calibrage » (bloc ASSISTANTS)
+}
+let current = 'live';
+function show(id){
+  if (!SECTIONS.some(s=>s.id===id)) id = 'live';
+  current = id;
+  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active', s.id==='sec-'+id));
+  document.querySelectorAll('#nav [data-nav]').forEach(a=>{ if (a.dataset.nav===id) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  document.querySelector(`#nav [data-nav="${id}"]`)?.scrollIntoView({block:'nearest'});
+  const i = SECTIONS.findIndex(s => s.id === id), s = SECTIONS[i], av = SECTIONS[i - 1], ap = SECTIONS[i + 1];
+  const top = document.getElementById('top-sec'); if (top) top.textContent = s.title;
+  document.title = s.title + ' · Réglages du robot';
+  const pager = document.getElementById('pager');
+  if (pager) pager.innerHTML = (av ? `<a href="#${av.id}" data-nav="${av.id}" class="prev"><small>← Précédent</small>${av.title}</a>` : '')
+    + (ap ? `<a href="#${ap.id}" data-nav="${ap.id}" class="next"><small>Suivant →</small>${ap.title}</a>` : '');
+}
+/* Le tiroir des rubriques (mobile) : bouton « ☰ », fond assombri, Échap ; le focus va au tiroir puis revient. */
+function tiroir(ouvrir, rendreFocus = true){
+  const btn = document.getElementById('menu'), nav = document.getElementById('nav');
+  document.body.classList.toggle('nav-open', ouvrir);
+  btn.setAttribute('aria-expanded', String(ouvrir));
+  btn.setAttribute('aria-label', ouvrir ? 'Fermer les rubriques' : 'Ouvrir les rubriques');
+  document.getElementById('scrim').hidden = !ouvrir;
+  if (ouvrir) (nav.querySelector('[aria-current]') || nav.querySelector('a'))?.focus({preventScroll:true});
+  else if (rendreFocus && nav.contains(document.activeElement)) btn.focus();
+}
+document.getElementById('menu').addEventListener('click', () => tiroir(!document.body.classList.contains('nav-open')));
+document.getElementById('scrim').addEventListener('click', () => tiroir(false));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('nav-open')) tiroir(false); });
+matchMedia('(max-width:860px)').addEventListener('change', e => { if (!e.matches) tiroir(false, false); });
+
+/* ---------- le direct : 2 fois par seconde, seulement quand la page est visible ---------- */
+const ago = s => s < 60 ? `il y a ${Math.round(s)} s` : `il y a ${Math.round(s/60)} min`;
+function paint(e){
+  const online = document.getElementById('online');
+  online.className = 'pill ' + (e.joignable === false ? 'bad' : 'ok');
+  online.lastElementChild.textContent = online.title = e.joignable === false ? 'Robot injoignable' : 'En ligne';
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  set('aware', e.conscience || 'Rien de particulier.');
+  set('st-eveil', e.dort ? 'Endormi' : 'Éveillé');
+  set('st-micro', e.muet ? 'Coupé' : 'Actif');
+  set('st-eco', e.eco ? 'Actif' : 'Coupé');
+  set('st-etat', ({idle:'Au repos', listening:'Écoute', thinking:'Réfléchit', speaking:'Parle', acting:'Agit', waiting:'Attend', error:'Erreur'})[e.etat] || e.etat);
+  const log = document.getElementById('log');
+  if (log) log.innerHTML = e.journal.length ? e.journal.map(([t,x]) => `<li><time>${esc(t)}</time><span>${esc(x)}</span></li>`).join('') : '<li class="empty">Rien pour l\'instant</li>';
+  const tl = document.getElementById('touches');
+  if (tl) tl.innerHTML = e.touchers.length ? e.touchers.map(([t,x]) => `<li><time>${esc(t)}</time><span>${esc(x)}</span></li>`).join('') : '<li class="empty">Aucun depuis le démarrage</li>';
+  const c = document.getElementById('compass');
+  if (c){ c.innerHTML = compassSvg(e); document.getElementById('compass-legend').innerHTML =
+    `<span><i style="background:var(--accent)"></i>Regard <b>${deg(e.regard.lacet)}</b></span><span><i style="background:var(--warn)"></i>Dernière voix <b>${e.voix ? deg(e.voix.angle) + ' · ' + ago(e.voix.age) : '—'}</b></span><span><i style="background:var(--accent-soft)"></i>Portée de la tête ±${Math.round(e.limite)}°</span>`; }
+  if (e.humeur){
+    for (const k in e.humeur.jauges){ const v = e.humeur.jauges[k], f = document.querySelector(`[data-g="${k}"]`), n = document.querySelector(`[data-gn="${k}"]`); if (!f) continue;
+      f.style.left = v >= 0 ? '50%' : (50 + v*50) + '%'; f.style.width = Math.abs(v)*50 + '%'; f.classList.toggle('neg', v < 0);
+      n.textContent = (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2).replace('.', ','); }
+    set('mood-word', e.humeur.mot.charAt(0).toUpperCase() + e.humeur.mot.slice(1));
+  }
+  const tag = document.getElementById('cam-tag'), over = document.getElementById('cam-over');
+  if (tag){
+    const v = e.vue;
+    const cap = n => n.charAt(0).toUpperCase() + n.slice(1).replace(/-/g, ' ');
+    const tous = v && v.presents && v.presents.length ? v.presents : (v && v.personne && v.personne !== 'inconnu' ? [v.personne] : []);
+    const who = (tous.length ? ` · ${tous.map(cap).join(', ')} reconnu·e${tous.length > 1 ? 's' : ''}` : (v && v.personne === 'inconnu' ? ' · visage inconnu' : ''))
+      + (v && v.animal ? ` · ${cap(v.animal)}` : '');   // 11/10 : toutes les personnes, et l'animal (chien, chat)
+    tag.textContent = !v ? 'Pas de caméra' : v.erreur ? v.erreur : `Caméra · ${v.every ? Math.round(1 / v.every) : '?'} image(s)/s analysée(s)${who}`;
+    over.innerHTML = !v || !v.visages ? '' : v.visages.map(([x,y]) => {
+      const tracked = v.suivi && Math.hypot(v.suivi[0]-x, v.suivi[1]-y) < 0.15;
+      return `<circle cx="${x}" cy="${y}" r=".07" fill="none" stroke="${tracked ? '#6f9bff' : '#e3a43b'}" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`;
+    }).join('');
+    set('cam-empty', v && v.image ? '' : (v ? 'Pas d\'image pour l\'instant' : 'Pas de caméra configurée'));
+  }
+  const m = document.getElementById('motors');
+  if (m){
+    const mo = e.moteurs, badge = document.getElementById('motors-badge');
+    badge.className = 'badge ' + (e.joignable === false ? 'warn' : e.dort ? '' : 'ok');
+    badge.textContent = e.joignable === false ? 'Injoignable' : e.dort ? 'Endormi' : 'Moteurs actifs';
+    const cells = [];
+    if (mo){
+      if (mo.corps !== null) cells.push(['Corps', mo.corps]);
+      mo.tete.forEach((v,i) => cells.push([`Tête ${i+1}`, v]));
+      if (mo.antennes.length === 2) cells.push(['Antennes', `${deg(mo.antennes[0])} / ${deg(mo.antennes[1])}`]);
+    }
+    m.innerHTML = cells.length ? cells.map(([n,v]) => `<div class="motor"><b>${n}</b><span>${typeof v === 'number' ? (v>0?'+':v<0?'−':'') + Math.abs(v).toFixed(1).replace('.', ',') + '°' : esc(v)}</span></div>`).join('') : '<span class="empty">Pas encore relevés</span>';
+    set('motors-note', mo ? `Position réelle, relevée ${ago(mo.age)} par le corps quand il guette un toucher.` : 'Relevés seulement quand le corps guette un toucher (au repos).');
+  }
+}
+async function poll(){
+  if (!document.hidden){
+    try {
+      const r = await fetch('/api/etat', {cache:'no-store'});
+      if (r.ok){ E = await r.json(); paint(E); }
+    } catch (_) {
+      const o = document.getElementById('online'); o.className = 'pill bad'; o.lastElementChild.textContent = 'Corps injoignable';
+    }
+  }
+  setTimeout(poll, 500);
+}
+let imageBusy = false;
+function image(){
+  const img = document.getElementById('cam-img');
+  if (img && current === 'live' && !document.hidden && !imageBusy && E && E.vue && E.vue.image){
+    imageBusy = true;
+    const next = new Image();
+    next.onload = () => { img.src = next.src; img.hidden = false; imageBusy = false; };
+    next.onerror = () => { imageBusy = false; };
+    next.src = '/api/image?t=' + Date.now() + appQ();
+  }
+  setTimeout(image, 1000);
+}
+
+/* ---------- enregistrement : à chaque changement, appliqué sans redémarrer ---------- */
+let saveTimer;
+function pill(kind, text){ const p = document.getElementById('save-pill'); p.className = 'pill' + (kind ? ' ' + kind : ''); p.querySelector('.txt').textContent = text; }
+/* 11/10 : le jeton de la page vit en mémoire du corps ; après un redémarrage du robot, une page déjà ouverte est
+   « périmée ». Plutôt que de laisser l'erreur, la page le dit et se recharge (une fois : jamais en boucle). */
+function perimee(r, data){
+  if (r.status !== 403 || !/périmée/.test(data.erreur || '')) return '';
+  let deja = false;
+  try { deja = sessionStorage.getItem('rechargee') === '1'; sessionStorage.setItem('rechargee', '1'); } catch (_) {}
+  if (deja) return 'page périmée : la recharger';
+  setTimeout(() => location.reload(), 1500);
+  return 'le robot a redémarré : la page se recharge, refaire le geste';
+}
+try { setTimeout(() => sessionStorage.removeItem('rechargee'), 10000); } catch (_) {}
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 2600); }
+async function save(changes, label){
+  pill('info', 'Enregistrement…');
+  try {
+    const r = await fetch('/api/reglages', {method:'POST', cache:'no-store',
+      headers:{'Content-Type':'application/json', 'X-Reachy-Jeton': JETON}, body: JSON.stringify({valeurs: changes})});
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(perimee(r, data) || data.erreur || ('erreur ' + r.status));
+    R.valeurs = data.valeurs;
+    clearTimeout(saveTimer);
+    pill('ok', 'Enregistré');
+    toast(`${label} — enregistré et appliqué, sans redémarrer`);
+    saveTimer = setTimeout(() => pill('', 'Tout est enregistré'), 2500);
+  } catch (err) {
+    pill('bad', 'Non enregistré');
+    toast(`${label} : ${err.message}`);
+  }
+  refreshRows(Object.keys(changes));
+}
+function refreshRows(keys){
+  const touched = new Set(keys);
+  for (const r of R.schema) if (r.depend && touched.has(r.depend)) touched.add(r.cle);
+  for (const k of touched){ const el = document.querySelector(`[data-row="${k}"]`); if (el && BY[k]) el.outerHTML = row(BY[k]); }
+}
+document.addEventListener('input', e => {
+  const id = e.target.dataset.id; if (!id || !BY[id]) return; const r = BY[id];
+  if (r.type === 'nombre'){ const v = Number(e.target.value); e.target.style.setProperty('--p', pct(v, r)); document.querySelector(`[data-val="${id}"]`).textContent = fmt(v, r); }
+  if (r.type === 'plage'){
+    const both = [...document.querySelectorAll(`[data-id="${id}"]`)], i = +e.target.dataset.i, v = Number(e.target.value);
+    const o = both.map(s => Number(s.value)); if (o[0] > o[1]) { o[1-i] = v; both[1-i].value = v; }
+    both.forEach((s, j) => s.style.setProperty('--p', pct(o[j], r)));
+    document.querySelector(`[data-val="${id}"]`).textContent = fmt(o, r);
+  }
+});
+document.addEventListener('change', e => {
+  const id = e.target.dataset.id; if (!id || !BY[id] || !R.ecriture) return; const r = BY[id];
+  let v;
+  if (r.type === 'interrupteur') v = e.target.checked;
+  else if (r.type === 'nombre') v = Number(e.target.value);
+  else if (r.type === 'plage') v = [...document.querySelectorAll(`[data-id="${id}"]`)].map(s => Number(s.value)).sort((a,b)=>a-b);
+  else if (r.type === 'heure' || r.type === 'choix') v = e.target.value;
+  save({[id]: v}, r.intitule);
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest('button,a'); if (!b) return;
+  if (b.dataset.nav){
+    e.preventDefault(); history.replaceState(null, '', '#' + b.dataset.nav); show(b.dataset.nav); window.scrollTo({top:0});
+    const tiroirOuvert = document.body.classList.contains('nav-open');
+    if (tiroirOuvert) tiroir(false, false);
+    // Le focus suit la rubrique : depuis le tiroir, le bas de page, ou au clavier (la souris dans la barre le laisse).
+    if (tiroirOuvert || !b.closest('#nav') || e.detail === 0) document.getElementById('main').focus({preventScroll:true});
+    return;
+  }
+  if ('skip' in b.dataset){ e.preventDefault(); document.getElementById('main').focus(); return; }
+  if (b.id === 'nav-close'){ tiroir(false); return; }
+  if (b.dataset.reset){ const r = BY[b.dataset.reset]; save({[r.cle]: null}, r.intitule + ' : valeur d\'origine'); return; }
+  if (b.id === 'theme'){ const root = document.documentElement; const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; root.dataset.theme = dark ? 'light' : 'dark'; try { localStorage.setItem('theme', root.dataset.theme); } catch (_) {} }
+});
+window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+
+let appairageVisible = false;
+function appairageMontrer(message){
+  if (appairageVisible && !message) return;
+  appairageVisible = true;
+  document.getElementById('nav').innerHTML = '';
+  document.getElementById('main').innerHTML = `<section class="section active" aria-labelledby="h-appairage"><div class="card">
+    <div class="card-title"><span id="h-appairage">Appairer cet appareil</span></div><div class="card-body">
+    <p>Cette page règle le robot et montre ce qu'il voit : chaque appareil s'appaire une fois. Demandez un code : le robot le dit à voix haute (sans voix, il est écrit au journal de la machine du robot).</p>
+    <div class="app-form">
+      <div><button class="pers-btn" type="button" id="app-demander">1 · Demander un code</button></div>
+      <label for="app-code">2 · Le code dit par le robot (6 chiffres)</label>
+      <input type="text" id="app-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+      <label for="app-nom">3 · Le nom de cet appareil</label>
+      <input type="text" id="app-nom" maxlength="40" placeholder="Téléphone, tablette du salon…">
+      <div><button class="pers-btn" type="button" id="app-valider">Appairer</button></div>
+    </div>
+    <p id="app-msg" role="status">${esc(message || '')}</p>
+    </div></div></section>`;
+  const msg = t => { const m = document.getElementById('app-msg'); if (m) m.textContent = t; };
+  const poster = (chemin, donnees) => fetch(chemin, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Reachy-Jeton': JETON},
+                                                      body: JSON.stringify(donnees || {})}).then(async r => [r.ok, await r.json().catch(() => ({}))]);
+  document.getElementById('app-demander').onclick = async () => {
+    const [ok, rep] = await poster('/api/appairage/demander');
+    msg(ok ? (rep.voix ? 'Le robot dit le code à voix haute (valable 3 minutes).' : 'Code écrit au journal de la machine du robot (valable 3 minutes).')
+           : (rep.erreur || 'Demande refusée.'));
+  };
+  document.getElementById('app-valider').onclick = async () => {
+    const [ok, rep] = await poster('/api/appairage/valider', {code: document.getElementById('app-code').value, nom: document.getElementById('app-nom').value});
+    if (!ok || !rep.jeton) { msg(rep.erreur || 'Code refusé.'); return; }
+    APPAREIL = rep.jeton;
+    try { localStorage.setItem('reachy-appareil', rep.jeton); location.reload(); }
+    catch (_) {
+      // Stockage refusé (cadre d'un autre site, navigation privée) : le jeton vit le temps de la visite.
+      appairageVisible = false;
+      msg('Appairé pour cette visite seulement : ce navigateur refuse de garder le jeton. Ouvrez la page directement (son adresse) pour un appairage durable.');
+      setTimeout(start, 1500);
+    }
+  };
+}
+
+async function start(){
+  try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (_) {}
+  // Pas encore appairé (ou jeton révoqué) : l'écran d'appairage, rien d'autre ne se charge.
+  try {
+    const etat = await (await fetch('/api/appairage/etat', {cache: 'no-store'})).json();
+    if (!etat.appaire) { appairageMontrer(); return; }
+  } catch (_) {}
+  try {
+    const r = await fetch('/api/reglages', {cache:'no-store'});
+    R = await r.json();
+  } catch (_) {
+    document.getElementById('main').innerHTML = '<p class="empty">Le corps du robot ne répond pas. Recharger la page dans un instant.</p>';
+    return;
+  }
+  for (const r of R.schema) BY[r.cle] = r;
+  if (!R.ecriture) pill('', 'Lecture seule');
+  render();
+  poll();
+  image();
+}
+start();
+</script>
+</body>
+</html>

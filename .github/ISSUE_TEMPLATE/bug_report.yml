@@ -1,0 +1,51 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! **Security issues** go through [SECURITY.md](https://github.com/lugio/oma-companion/blob/main/SECURITY.md), not here.
+        Please remove any personal data (names, addresses, tokens) from logs and screenshots.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Alison version
+      placeholder: "0.17.0"
+    validations:
+      required: true
+  - type: input
+    id: omarchy
+    attributes:
+      label: Omarchy version
+      placeholder: "4.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Permission mode
+      options: [Chat, Read, Assistant, Code, Autonomous]
+  - type: input
+    id: agent
+    attributes:
+      label: Agent (`omarchy default agent`)
+      placeholder: "claude"
+  - type: dropdown
+    id: language
+    attributes:
+      label: Interface language
+      options: [English, Français]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "Panel journal (copy button) or `journalctl --user -o cat _COMM=quickshell --since -10min`"
+      render: text
