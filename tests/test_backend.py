@@ -6459,6 +6459,12 @@ class TranscriptionEngineTests(unittest.TestCase):
                 model.mkdir(parents=True)
                 for name in ("encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", "tokens.txt"):
                     (model / name).write_text("x")
+                self.assertFalse(backend.voice_complete())  # Whisper vérifié manque aux anciennes installations.
+                import download_models
+                whisper = Path(root) / "models/faster-whisper-small"
+                whisper.mkdir()
+                for name in download_models.WHISPER_FILES:
+                    (whisper / name).write_text("x")
                 self.assertTrue(backend.voice_complete())
         view = (Path(__file__).parents[1] / "SettingsView.qml").read_text()
         self.assertIn("visible: !settings.app.voiceReady || !settings.app.voiceComplete", view)

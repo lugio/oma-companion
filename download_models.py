@@ -14,6 +14,19 @@ import zipfile
 DEST = Path(os.environ.get("COMPANION_DATA_HOME", str(Path.home() / ".local/share/omarchy-companion"))) / "models"
 WHISPER_CPP = "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1"
 PIPER = "https://huggingface.co/rhasspy/piper-voices/resolve/1162a9173d0ce503555aed757976b7a9912eae4c"
+WHISPER_REVISION = "536b0662742c02347bc0e980a01041f333bce120"
+WHISPER_URL = f"https://huggingface.co/Systran/faster-whisper-small/resolve/{WHISPER_REVISION}"
+# Inventaire COMPLET du commit : quatre fichiers d'inférence et deux notices/métadonnées.
+# model.bin : SHA-256 publié dans le pointeur LFS ; autres fichiers : octets téléchargés et
+# hachés le 19/10/2026 à cette révision, sans passer par une représentation HTML.
+WHISPER_FILES = {
+    ".gitattributes": "db7c0371f46f0840b8f25794c1e3321c9b5820a8cb6ba9694a46fc64b8fae5a6",
+    "README.md": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8",
+    "config.json": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828",
+    "model.bin": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+    "tokenizer.json": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+    "vocabulary.txt": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913",
+}
 MODELS = {
     "ggml-base.bin": (f"{WHISPER_CPP}/ggml-base.bin",
                       "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe"),
@@ -31,6 +44,8 @@ MODELS = {
     "vosk-en.zip": ("https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
                     "30f26242c4eb449f948e42cb302dd7a686cb29a3423a8367f99ff41780942498"),
 }
+MODELS.update({f"faster-whisper-small/{name}": (f"{WHISPER_URL}/{name}", digest)
+               for name, digest in WHISPER_FILES.items()})
 TIMEOUT = 60
 
 
@@ -45,18 +60,21 @@ def sha256(path):
 def download(item):
     name, (url, expected) = item
     path = DEST / name
+    path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() and sha256(path) == expected:
         print(name, "déjà présent, empreinte vérifiée", flush=True)
         return
     part = path.with_suffix(path.suffix + ".part")
-    with urllib.request.urlopen(url, timeout=TIMEOUT) as response, open(part, "wb") as handle:
-        for block in iter(lambda: response.read(1 << 20), b""):
-            handle.write(block)
-    actual = sha256(part)
-    if actual != expected:
-        part.unlink()
-        raise ValueError(f"{name} : empreinte inattendue ({actual}), fichier rejeté")
-    part.replace(path)
+    try:
+        with urllib.request.urlopen(url, timeout=TIMEOUT) as response, open(part, "wb") as handle:
+            for block in iter(lambda: response.read(1 << 20), b""):
+                handle.write(block)
+        actual = sha256(part)
+        if actual != expected:
+            raise ValueError(f"{name} : empreinte inattendue ({actual}), fichier rejeté")
+        part.replace(path)
+    finally:
+        part.unlink(missing_ok=True)
     print(name, path.stat().st_size, "octets, empreinte vérifiée", flush=True)
 
 

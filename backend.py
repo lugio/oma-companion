@@ -140,13 +140,15 @@ VOICE_MODELS = {lang: [v["tts"], v["tts"] + ".json", v["vosk"]] for lang, v in t
 
 
 def voice_complete():
-    """Les compléments FACULTATIFS de la voix sont-ils là ? Aujourd'hui : Parakeet (sherpa-onnx et
-    son modèle). Faux = le bouton d'installation revient, libellé « compléter » — la voix déjà
-    installée reste utilisable (Whisper en repli), rien ne casse."""
+    """Parakeet et le dossier Whisper épinglé sont-ils complets ? Sinon le bouton revient.
+    Un moteur déjà présent reste utilisable ; les empreintes sont contrôlées au téléchargement
+    et, pour Whisper, au chargement, pas à chaque rafraîchissement du panneau."""
+    from download_models import WHISPER_FILES
     packages = list((ROOT / ".venv/lib").glob("python*/site-packages"))
     model = ROOT / "models" / "parakeet-v3"
     return any((folder / "sherpa_onnx").is_dir() for folder in packages) \
-        and all((model / name).exists() for name in ("encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", "tokens.txt"))
+        and all((model / name).is_file() for name in ("encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", "tokens.txt")) \
+        and all((ROOT / "models/faster-whisper-small" / name).is_file() for name in WHISPER_FILES)
 
 
 def voice_installed(lang="fr"):

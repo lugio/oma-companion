@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.17.4] — 2026-10-19
+
+### Security
+- Download the complete six-file faster-whisper-small snapshot at a fixed commit on the explicit voice-install click, checking each SHA-256 before renaming its `.part` file.
+- Verify the local Whisper files before loading; disable model-name overrides and implicit downloads during listening or fallback. Missing or altered files are refused with French/English installation guidance.
+
+### Changed
+- Offer voice completion when the pinned local Whisper folder is missing, even if Parakeet is already installed, and keep an explicit verify/repair action for complete installations. Correct download estimates and first-listen messages.
+- Document model attributions, the unresolved Lessac corpus restrictions and three English medium voice candidates with documented training provenance. Keep the existing English voice unchanged.
+
 ## [0.17.3] — 2026-10-19
 
 ### Security

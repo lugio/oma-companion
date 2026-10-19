@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-0.17.3-blue" /></a>
+  <a href="CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-0.17.4-blue" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" /></a>
   <a href="https://omarchy.org"><img alt="Omarchy" src="https://img.shields.io/badge/Omarchy-4-orange" /></a>
   <img alt="Quickshell" src="https://img.shields.io/badge/Quickshell-QML-41cd52" />
@@ -91,7 +91,7 @@ see [Voice](docs/voice.md).
 | 💬 Chat | Text or voice, streamed answers, code blocks, images on click | — |
 | 😊 Expressions | A live face that listens, thinks, speaks with her real voice volume, waits for your click, and shows what she is doing | [Expressions](docs/expressions.md) |
 | 🛡️ Guard | Five modes, approval cards, private locations, blocked root and secrets | [Permissions](docs/permissions.md) |
-| 🎙️ Voice | Piper speech, Vosk wake word (*“Hey Alison”*), Parakeet / Whisper transcription, hands-free conversation | [Voice](docs/voice.md) |
+| 🎙️ Voice | Piper speech, Vosk wake word (*“Hey Alison”*), Parakeet / Whisper transcription — models downloaded on click and checksum-verified, then local listening | [Voice](docs/voice.md) |
 | 🧠 Memory | Notebook, daily notes, recall of past conversations, daily tidying while idle, *New* / *Delete conversation* | [Privacy](docs/privacy.md) |
 | 🎭 Roles | Personas that can only **remove** rights — writing, home, accounting examples included | [Permissions](docs/permissions.md#roles) |
 | 🔌 Connections | Home Assistant, IMAP mail, Dolibarr accounting — read-only or carded | [Connections](docs/connections.md) |
@@ -203,4 +203,4 @@ Security problems: please follow [SECURITY.md](SECURITY.md) instead of opening a
 ## 📄 License
 
 [GPL-3.0-or-later](LICENSE). Third-party engines and models keep their own licenses
-(Piper, Vosk, Parakeet, Whisper, Reachy Mini SDK).
+(Piper, Vosk, Parakeet, Whisper, Reachy Mini SDK). See [model attributions and licensing limits](docs/model-licenses.md), including the unresolved Lessac voice provenance.

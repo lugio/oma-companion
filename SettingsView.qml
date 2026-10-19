@@ -1412,6 +1412,15 @@ RowLayout {
                         onClicked: settings.app.send("install_voice")
                     }
                 }
+                // Un dossier complet peut être altéré : garder une réparation explicite sur clic,
+                // sans hacher les gros modèles à chaque rafraîchissement du panneau.
+                TextButton {
+                    visible: settings.app.voiceReady && settings.app.voiceComplete
+                    text: settings.app.tr.voice_verify
+                    enabled: settings.app.connected && !settings.app.voiceSetupRunning
+                    opacity: enabled ? 1 : 0.45
+                    onClicked: settings.app.send("install_voice")
+                }
                 SwitchRow {
                     label: settings.app.tr.voice_read_aloud
                     checked: settings.app.voice

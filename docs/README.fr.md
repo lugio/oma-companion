@@ -29,3 +29,5 @@ dans les Réglages.
 - **Robot** Reachy Mini facultatif.
 
 La documentation détaillée est en anglais : [docs](README.md).
+
+Les modèles de voix sont téléchargés sur clic (environ 1,3 Go, hors paquets), vérifiés par SHA-256 ; Whisper ne télécharge plus à la première écoute. Voir les [attributions et limites de licence](model-licenses.md), notamment pour la voix anglaise Lessac, conservée sans remplacement.

@@ -64,3 +64,26 @@ omarchy plugin validate .
 - https://github.com/OHF-Voice/piper1-gpl
 - https://alphacephei.com/vosk/models
 - https://github.com/pollen-robotics/reachy_mini
+
+
+## Verified Whisper installation (0.17.4)
+
+`download_models.WHISPER_FILES` is the complete six-file inventory at
+[the fixed Systran commit](https://huggingface.co/Systran/faster-whisper-small/tree/536b0662742c02347bc0e980a01041f333bce120).
+The weight hash comes from the published LFS SHA-256 (not the Xet hash); the other five hashes were
+computed from exact downloaded bytes on 2026-10-19. No weights were downloaded for that audit.
+The commit contains no `preprocessor_config.json`; faster-whisper 1.2.1 uses its packaged defaults
+when it is absent. The pinned local tokenizer avoids its remote tokenizer fallback.
+
+Whisper is installed only by the existing voice-install click. The loader checks all six files
+before importing faster-whisper and passes only the local directory with `local_files_only=True`.
+The old model-name override is ignored. The completion indicator checks file presence, not hashes
+on every UI refresh; hash validation happens on download and Whisper load. A corrupt complete folder
+is refused on load and can be repaired with the always-available **Verify and repair models**
+action (when ready and complete), which runs the explicit installer again, including its pip step.
+
+Regression tests: `python3 -m unittest discover -s tests -p test_whisper_verified.py` covers missing
+files without network/loader calls, fixed inventory, wrong download hash, local-only loading,
+tampering, fallback and the ignored override. Tests use temporary models and a fake loader;
+real CPU transcription and model quality are not established by those tests.
+See [model licenses](model-licenses.md) for the voice-license study and remaining uncertainties.

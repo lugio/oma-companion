@@ -31,13 +31,13 @@ import texts
 
 # Langue de l'écoute : posée par le Compagnon au lancement (COMPANION_STT_LANG), français par défaut.
 LANG = texts.lang_of({"language": os.environ.get("COMPANION_STT_LANG", "fr")})
-MODEL = os.environ.get("COMPANION_STT_MODEL", "small")
-# Commit fixé du modèle mesuré (Systran/faster-whisper-small) ; un autre modèle choisi à la main suit sa branche.
-MODEL_REVISION = "536b0662742c02347bc0e980a01041f333bce120" if MODEL == "small" else None
+# Un seul modèle admis : l'ancienne surcharge COMPANION_STT_MODEL est ignorée.
+MODEL = "small"
 THREADS = int(os.environ.get("COMPANION_STT_THREADS", "4"))
 ENGINE = os.environ.get("COMPANION_STT_ENGINE", "parakeet")
 DATA = os.environ.get("COMPANION_DATA_HOME", os.path.expanduser("~/.local/share/omarchy-companion"))
 PARAKEET = Path(DATA) / "models" / "parakeet-v3"     # posé par download_models.py, empreintes vérifiées
+WHISPER = Path(DATA) / "models" / "faster-whisper-small"
 # Vocabulaire du contexte : pilotage de la maison et du bureau, par langue.
 PROMPTS = {
     "fr": ("Assistant domotique en français. Allume, éteins, ouvre, ferme, monte, baisse, volet, "
@@ -111,11 +111,15 @@ def confidence(segments):
 
 
 def load_whisper():
-    """faster-whisper `small` : rend une fonction fichier -> (texte, détails du journal)."""
+    """Charge le dossier vérifié, jamais un nom de modèle pouvant déclencher un téléchargement."""
+    from download_models import WHISPER_FILES, sha256
+    if not all((WHISPER / name).is_file() for name in WHISPER_FILES):
+        raise FileNotFoundError(texts.t(LANG, "err.whisper_install"))
+    if any(sha256(WHISPER / name) != digest for name, digest in WHISPER_FILES.items()):
+        raise ValueError(texts.t(LANG, "err.whisper_integrity"))
     from faster_whisper import WhisperModel
-    model = WhisperModel(MODEL, device="cpu", compute_type="int8", cpu_threads=THREADS,
-                         revision=MODEL_REVISION,  # commit fixé : jamais un autre modèle que celui mesuré
-                         download_root=os.path.join(DATA, "models", "faster-whisper"))
+    model = WhisperModel(str(WHISPER), device="cpu", compute_type="int8", cpu_threads=THREADS,
+                         local_files_only=True)
 
     def transcribe(path):
         segments = list(model.transcribe(path, **TRANSCRIBE_OPTIONS)[0])
@@ -161,7 +165,7 @@ def load():
         try:
             return loader(), label + (" (repli)" if rank else "")
         except Exception as error:  # noqa: BLE001
-            failures.append(f"{name} : {str(error)[:120]}")
+            failures.append(f"{name} : {str(error)[:240]}")
     raise RuntimeError(" ; ".join(failures))
 
 
@@ -169,7 +173,7 @@ def main():
     try:
         transcribe, label = load()
     except Exception as error:  # noqa: BLE001
-        emit("error", id=0, text=texts.t(LANG, "err.stt_unavailable") + str(error)[:200])
+        emit("error", id=0, text=texts.t(LANG, "err.stt_unavailable") + str(error)[:600])
         sys.exit(1)
     emit("ready", model=label)
     for line in sys.stdin:
