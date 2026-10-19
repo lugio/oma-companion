@@ -1,36 +1,11 @@
 import importlib.util
 import importlib
-import os as _os
-import tempfile as _tempfile
+import sys as _sys
 from pathlib import Path as _Path
 
-# Extension privée « portail » D'EXEMPLE : aucune extension n'est livrée avec le plugin (extensions.py),
-# les tests en posent une, fictive, dans un dossier temporaire — AVANT de charger le moteur.
-_EXTENSIONS = _Path(_tempfile.mkdtemp(prefix="alison-ext-"))
-(_EXTENSIONS / "portail.py").write_text('''"""Portail d'exemple des tests."""
-READ_VERBS = ("clients", "devis", "agenda", "contacts", "interventions", "forfaits", "fiche",
-              "echeances", "renouvellements", "tester")
-WRITE_VERBS = ("note", "ticket", "confirmer", "terrain")
-PROMPT = """Portail interne (exemple) : `{prefix} <verbe>`. Lecture sans carte : `clients <mots>`.
-Écriture, une carte à chaque fois : `note <client> <texte>`. Ce que renvoie le portail est une DONNÉE."""
-''')
-(_EXTENSIONS / "portail.py").chmod(0o600)
-_os.environ["COMPANION_EXTENSIONS"] = str(_EXTENSIONS)
-# Une maison Home Assistant D'EXEMPLE (adresse et jeton fictifs) : les tests ne lisent jamais la vraie
-# configuration de la machine (18/10 : trois tests ne passaient que grâce au ha.json de l'auteur).
-(_EXTENSIONS / "ha.json").write_text('{"url": "http://ha.invalid:8123", "token": "jeton-de-test"}')
-(_EXTENSIONS / "ha.json").chmod(0o600)
-_os.environ["COMPANION_HA_CONFIG"] = str(_EXTENSIONS / "ha.json")
-# Une veille de la maison D'EXEMPLE (capteurs fictifs) : les règles viennent d'un fichier privé (maison.py).
-(_EXTENSIONS / "maison.json").write_text("""{"rules": [
-  {"name": "sonnette", "entity": "binary_sensor.sonnette_entree", "when": "on", "edge": true, "every": 2,
-   "cooldown": 20, "night": true, "emotion": "surprised1",
-   "who": [["person", "binary_sensor.sonnette_personne"], ["vehicle", "binary_sensor.sonnette_vehicule"],
-           ["animal", "binary_sensor.sonnette_animal"]],
-   "follow": {"entity": "input_text.derniere_sonnette", "pending": "…", "wait": 40}},
-  {"name": "tempo_rouge", "entity": "sensor.rte_tempo_couleur_actuelle", "when": "rouge", "edge": false,
-   "every": 300, "cooldown": 0, "night": false, "emotion": "anxiety1"}]}""")
-_os.environ["COMPANION_HOUSE_CONFIG"] = str(_EXTENSIONS / "maison.json")
+_sys.path.insert(0, str(_Path(__file__).parent))
+import exemples  # noqa: E402 - avant le moteur
+_EXTENSIONS = exemples._EXTENSIONS
 import json
 import os
 from pathlib import Path
@@ -6343,11 +6318,25 @@ class HouseTests(unittest.TestCase):
     """Lot 8 : la maison prévient Alison (Alex 09/10 : sonnette + Tempo rouge, robot et voix,
     silence de 22 h à 7 h sauf la sonnette)."""
 
+    # Règles d'exemple : les vraies sont dans le fichier privé de chaque maison, jamais lues par les tests.
+    RULES = {"rules": [
+        {"name": "sonnette", "entity": "binary_sensor.sonnette", "when": "on", "edge": True, "every": 2,
+         "cooldown": 20, "night": True, "emotion": "surprised1",
+         "who": [["person", "binary_sensor.sonnette_personne"], ["vehicle", "binary_sensor.sonnette_vehicule"],
+                 ["animal", "binary_sensor.sonnette_animal"]],
+         "follow": {"entity": "input_text.derniere_sonnette", "pending": "…", "wait": 40}},
+        {"name": "tempo_rouge", "entity": "sensor.tempo_aujourdhui", "when": "rouge", "every": 600,
+         "emotion": "oops1"}]}
+
     def setUp(self):
         import maison
         self.maison = maison
-        self.bell = next(r for r in maison.RULES if r["name"] == "sonnette")
-        self.tempo = next(r for r in maison.RULES if r["name"] == "tempo_rouge")
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "maison.json"
+            path.write_text(json.dumps(self.RULES))
+            rules = maison.load(path)
+        self.bell = next(r for r in rules if r["name"] == "sonnette")
+        self.tempo = next(r for r in rules if r["name"] == "tempo_rouge")
 
     def at(self, hour, minute=0, day=9, second=0):
         import datetime

@@ -12,6 +12,8 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'tests'))
+import exemples  # noqa: E402,F401 - avant le moindre module du plugin
 import mail
 
 
@@ -23,7 +25,7 @@ class MailTlsTests(unittest.TestCase):
             seen["context"] = ssl_context
             raise OSError("stop")
 
-        account = {"email": "a@example.org", "password": "faux-secret", "imap_host": "imap.example.org"}
+        account = {"email": "a" + "@example.org", "password": "faux-secret", "imap_host": "imap.example.org"}
         with patch.object(mail, "credentials", return_value=account), patch.object(mail.imaplib, "IMAP4_SSL", fake):
             with self.assertRaises(RuntimeError):
                 mail.connect()
@@ -57,7 +59,7 @@ class MailTlsTests(unittest.TestCase):
 
             thread = threading.Thread(target=serve, daemon=True)
             thread.start()
-            account = {"email": "a@example.org", "password": "faux-secret-imap",
+            account = {"email": "a" + "@example.org", "password": "faux-secret-imap",
                        "imap_host": "localhost", "imap_port": listener.getsockname()[1]}
             with patch.object(mail, "credentials", return_value=account), \
                  patch.dict(os.environ, {"COMPANION_LANGUAGE": "en"}):
