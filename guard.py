@@ -6,7 +6,7 @@ validation dans le panneau. Le garde ne bloque plus que ce qui ne doit JAMAIS pa
 même validé d'un clic : les emplacements de secrets, l'élévation de privilèges et les
 commandes destructrices ou qui touchent au système hors de ton espace.
 
-Deux niveaux, selon le mode du panneau (`guard.py code|assistant [--private <chemin>]…`) :
+Deux niveaux, selon le mode du panneau (`guard.py code|assistant [--policy-file <fichier-600>]`) :
 - Assistant : assistant de bureau. Le coffre et les fichiers d'environnement restent
   fermés, il n'a aucune raison d'y toucher.
 - Code : vraie session de développement. Le coffre et les .env s'ouvrent, parce que les
@@ -24,6 +24,7 @@ from pathlib import Path
 import re
 import shlex
 import sys
+import tempfile
 
 # Fermés dans TOUS les modes : aucun travail légitime ne demande de lire ces fichiers-là.
 PROTECTED = [
@@ -46,7 +47,7 @@ PROTECTED = [
 
 # Fermés au seul mode Assistant. En mode Code ce sont les outils de travail : sans le
 # coffre ni les .env, un agent de développement ne peut rien faire sur les projets. Les
-# emplacements privés déclarés dans les réglages (`--private ~/mon-coffre`) s'y ajoutent.
+# emplacements privés déclarés dans les réglages (politique privée par fichier) s'y ajoutent.
 PROTECTED_ASSISTANT = [
     r"vault\.json", r"secrets\.json", r"\.env\b",
 ]
@@ -101,7 +102,7 @@ WINDOWED = ("firefox", "chromium", "google-chrome", "google-chrome-stable", "bra
 def windowed_launch(command):
     """Premier programme de la commande s'il ouvre une fenêtre au premier plan, sinon une chaîne vide."""
     for part in re.split(r"[;&|]+", command):
-        words = [word for word in part.strip().split() if not re.match(r"^[A-Z_][A-Z0-9_]*=", word)]
+        _, words = leading_assignments(part.strip().split())
         # Enveloppes qui ne changent rien au problème : `sh -c firefox …` bloque autant que
         # `firefox …`. On les retire pour regarder le vrai programme derrière.
         while words and words[0].rsplit("/", 1)[-1] in ("sh", "bash", "zsh", "env", "nice", "timeout", "stdbuf"):
@@ -187,6 +188,125 @@ SED_PRINT = re.compile(r"^\s*(\d+|\$)?\s*(,\s*(\d+|\$))?\s*p\s*$")
 AWK_DANGER = re.compile(r"system|getline|[|>]|@load|ENVIRON|\bclose\b|fflush", re.IGNORECASE)
 LOCAL_URL = re.compile(r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(/|$)")
 
+# Catalogue fermé des variantes de lecture. Toute option inconnue repasse par une carte
+# (ou un refus en Lecture), y compris les abréviations GNU et les options groupées.
+# (drapeaux courts, options courtes à valeur, drapeaux longs, options longues à valeur)
+READ_OPTIONS = {
+    "ls": ("aAbBcCdDfFgGhHiIklLmNnOpqQrRsStTuUvwxX1Z", "IwT", "all almost-all directory human-readable inode numeric-uid-gid recursive reverse size color classify file-type group-directories-first", "color format sort time time-style quoting-style block-size width tabsize ignore hide"),
+    "cat": ("AbEnstTuv", "", "show-all number-nonblank show-ends number squeeze-blank show-tabs show-nonprinting", ""),
+    "head": ("qv", "cn", "quiet silent verbose zero-terminated", "bytes lines"),
+    "tail": ("fFqv", "cns", "follow retry quiet silent verbose zero-terminated", "bytes lines sleep-interval max-unchanged-stats pid"),
+    "grep": ("EFGHPivwxyoznqslLchbrRUIa", "e f A B C m d D".replace(" ", ""), "extended-regexp fixed-strings basic-regexp perl-regexp ignore-case word-regexp line-regexp invert-match only-matching count files-with-matches files-without-match line-number byte-offset with-filename no-filename quiet silent recursive dereference-recursive text binary line-buffered null-data null no-messages", "regexp file after-context before-context context max-count directories devices binary-files include exclude exclude-from exclude-dir color"),
+    "stat": ("Lf", "ct", "dereference file-system terse", "format printf"),
+    "df": ("ahHiklmPT", "Btx", "all human-readable si inodes local portability print-type sync no-sync total", "block-size type exclude-type output"),
+    "du": ("abcDhHklLmsSx", "Bd", "all apparent-size bytes total human-readable si count-links dereference no-dereference summarize one-file-system null", "block-size max-depth exclude exclude-from threshold time time-style"),
+    "free": ("bkmghwlt", "s c".replace(" ", ""), "bytes kilo mega giga tera kibi mebi gibi tebi human wide lohi total si", "seconds count"),
+    "uptime": ("ps", "", "pretty since", ""),
+    "pgrep": ("flanovxcw", "dPuUgGsStFr", "full list-name list-full newest oldest inverse count exact lightweight ignore-case", "delimiter parent pgroup group egroup uid euid session terminal pidfile runstates ns nslist cgroup env"),
+    "uname": ("asnrvmpio", "", "all kernel-name nodename kernel-release kernel-version machine processor hardware-platform operating-system", ""),
+    "lsblk": ("abdfilmnOpPrsStzJ", "oIxE", "all bytes discard ascii fs inverse list merge noheadings nodeps pairs paths raw scsi topology json", "output exclude include sort dedup tree"),
+    "lscpu": ("abBceJx", "", "all online offline bytes json hex", "extended parse caches output-all"),
+    "lsusb": ("tvV", "sd", "tree verbose version", "show device"),
+    "lspci": ("vntbDkmm", "sd", "", ""),
+    "nproc": ("", "", "all", "ignore"),
+    "date": ("uIR", "dr", "utc universal iso-8601 rfc-email", "date reference rfc-3339 resolution"),
+    "cal": ("13jmy", "AB", "", ""),
+    "wc": ("clmwL", "", "bytes chars lines words max-line-length", "files0-from"),
+    "file": ("bchiLNprsv0", "efFmP", "brief mime mime-type mime-encoding dereference no-dereference no-buffer separator preserve-date raw special-files keep-going", "exclude exclude-quiet files-from separator magic-file parameter"),
+    "which": ("as", "", "all skip-alias skip-functions skip-dot skip-tilde show-dot show-tilde", ""),
+    "sensors": ("Auj", "c", "no-adapter fahrenheit", "config-file"),
+    "id": ("GgnruzZ", "", "groups group name real user zero context", ""),
+    "whoami": ("", "", "", ""),
+    "acpi": ("abctVifs", "", "battery ac-adapter cooling thermal everything fahrenheit kelvin show-empty", ""),
+    "upower": ("edimv", "", "enumerate dump monitor monitor-detail version", "show-info"),
+    "systemctl": ("alq", "ntp", "user all full no-pager no-legend plain quiet failed reverse recursive", "lines type state property output"),
+    "journalctl": ("abefklmqrux", "b n u t p o S U D".replace(" ", ""), "all boot catalog follow kernel list-boots no-pager no-hostname quiet reverse system user utc disk-usage header verify", "boot lines unit user-unit identifier priority output since until directory file field grep output-fields"),
+    "pacman": ("Qqelisumndt", "", "query quiet explicit info list search upgrades foreign native deps unrequired", ""),
+    "wpctl": ("", "", "", ""),
+    "bluetoothctl": ("", "", "", ""),
+    "cut": ("nsz", "bcdf", "only-delimited complement zero-terminated", "bytes characters delimiter fields output-delimiter"),
+    "sort": ("bdfgihMnRrsuVz", "kt", "ignore-leading-blanks dictionary-order ignore-case general-numeric-sort human-numeric-sort month-sort numeric-sort random-sort reverse stable unique version-sort zero-terminated check merge", "key field-separator sort random-source parallel batch-size buffer-size files0-from"),
+    "uniq": ("cduiz", "fsw", "count repeated unique ignore-case zero-terminated", "skip-fields skip-chars check-chars all-repeated group"),
+    "diff": ("abBcdefilnNpqrsStTuywZ", "CUxX", "text ignore-space-change ignore-blank-lines ignore-case brief recursive report-identical-files strip-trailing-cr normal ed forward-ed rcs side-by-side expand-tabs initial-tab left-column suppress-common-lines", "context unified exclude exclude-from label width tabsize horizon-lines line-format old-line-format new-line-format unchanged-line-format old-group-format new-group-format unchanged-group-format changed-group-format"),
+    "tree": ("adfghilnpqrsuDFJQNUxAC", "LPI", "all dirsfirst filesfirst noreport prune full-path noemptydirs du inodes device human-readable si ascii charset gitignore", "level pattern ignore matchdirs filelimit sort timefmt ignorefile"),
+    "realpath": ("eLmqsz", "", "canonicalize-existing logical canonicalize-missing quiet strip no-symlinks zero", "relative-to relative-base"),
+    "basename": ("asz", "", "multiple zero", "suffix"),
+    "dirname": ("z", "", "zero", ""),
+    "rg": ("FhilLnNoqsvwxcIuUPzSa", "e f g t T m A B C j".replace(" ", ""), "fixed-strings ignore-case case-sensitive smart-case invert-match word-regexp line-regexp line-number no-line-number only-matching count count-matches files files-with-matches files-without-match hidden no-ignore no-ignore-vcs no-heading heading with-filename no-filename json multiline multiline-dotall text null null-data line-buffered no-messages stats", "regexp file glob iglob type type-not max-count after-context before-context context threads max-depth max-filesize color colors encoding sort sortr"),
+    "fd": ("aHILlps0", "eEgdtj", "absolute-path hidden no-ignore no-ignore-vcs follow list-details full-path print0 show-errors", "extension exclude glob type max-depth min-depth exact-depth threads size changed-within changed-before newer older base-directory search-path color"),
+    "jq": ("acejnrRMsS", "", "compact-output ascii-output exit-status join-output null-input raw-output raw-input monochrome-output slurp sort-keys tab", "indent"),
+    "shellcheck": ("aCxsV", "efPSW", "check-sourced external-sources version wiki-link-count", "exclude format shell severity source-path enable"),
+}
+
+
+def leading_assignments(words):
+    """Les affectations n'existent qu'avant le programme : après, ce sont ses arguments."""
+    index = 0
+    while index < len(words) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[index]):
+        index += 1
+    return words[:index], words[index:]
+
+
+def closed_read_options(program, args):
+    if program not in READ_OPTIONS:
+        return ""
+    flags, valued, long_flags, long_valued = READ_OPTIONS[program]
+    long_flags = set(long_flags.split()) | {"help", "version"}
+    long_valued = set(long_valued.split())
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        index += 1
+        if arg == "--":
+            break
+        if arg in ("", "-") or not arg.startswith("-"):
+            continue
+        if program in ("head", "tail") and re.fullmatch(r"-\d+", arg):
+            continue
+        if arg.startswith("--"):
+            option, equals, _ = arg[2:].partition("=")
+            if option in long_valued:
+                if not equals:
+                    if index >= len(args):
+                        return f"{program} (option sans valeur)"
+                    index += 1
+            elif option not in long_flags or equals:
+                return f"{program} (option non autorisée)"
+        else:
+            for pos, char in enumerate(arg[1:], 1):
+                if char in valued:
+                    if pos == len(arg) - 1:
+                        if index >= len(args):
+                            return f"{program} (option sans valeur)"
+                        index += 1
+                    break
+                if char not in flags:
+                    return f"{program} (option non autorisée)"
+    if program == "systemctl":
+        # Les préfixes natifs ne donnent accès qu'à ces lectures, jamais aux verbes de mutation.
+        operands = [arg for arg in args if not arg.startswith("-")]
+        if not operands or operands[0] not in SYSTEMCTL_READ:
+            return "systemctl (action)"
+    return ""
+
+
+SYSTEMCTL_READ = {"status", "list-units", "list-unit-files", "is-active", "is-enabled"}
+HELPERS = {"ha.py", "mail.py", "dolibarr.py", "portail.py", "reachy.py", "delegue.py"}
+HELPER_EXPANSION = re.compile(r"[?*\[\]{}~$`\\<>;|&()]|\n")
+
+
+def helper_expansion(command):
+    """Les helpers hors bac à sable ne reçoivent que des arguments littéraux, même cités."""
+    parts = segments(command)
+    if parts is None:
+        return "commande illisible"
+    for words in parts:
+        _, words = leading_assignments(words)
+        if any(Path(word).name in HELPERS for word in words):
+            if HELPER_EXPANSION.search(command):
+                return "expansion ou redirection dans un appel sensible"
+    return ""
+
 
 def segments(command):
     """Les commandes simples d'une ligne shell, découpées hors guillemets. None si illisible."""
@@ -209,12 +329,54 @@ def segments(command):
     return out
 
 
+def shell_evaluates(command):
+    """Aucune pré-autorisation ne vaut pour une commande que le shell transforme ou compose.
+
+    Les motifs cités littéralement restent des données (`grep '[abc]'`, `sed -n '$p'`). Une
+    variable, un joker non cité ou une substitution pourrait fabriquer une option d'écriture ; une
+    redirection disparaîtrait au découpage. Les enchaînements `|`, `;`, `&&`, `||` restent permis :
+    `segments()` contrôle chaque commande simple séparément (sans eux, `cat f | grep x` était refusé
+    en Lecture — relecture du 19/10).
+    """
+    quote, escaped = "", False
+    for char in command:
+        if escaped:
+            escaped = False
+            continue
+        if quote == "'":
+            if char == "'":
+                quote = ""
+            continue
+        if char == "\\":
+            escaped = True
+        elif char in ("'", '"') and not quote:
+            quote = char
+        elif char == quote:
+            quote = ""
+        elif char in "$`" or (not quote and char in "*?[{~<>()"):
+            return True
+    return bool(quote or escaped)
+
+
 def risky_read(words):
     """Raison de redemander une carte pour UNE commande simple, ou chaîne vide."""
-    words = [word for word in words if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", word)]
+    assignments, words = leading_assignments(words)
+    if assignments:
+        return "environnement de commande modifié"
     if not words:
         return ""
     program, args = Path(words[0]).name, words[1:]
+    # Ces outils peuvent charger des exécutables depuis leur configuration locale/de projet.
+    # Ils restent disponibles par carte ; aucune option n'est une preuve de lecture seule.
+    if program in ("git", "npm", "pip", "pip3", "qmllint", "fastfetch"):
+        return f"{program} (configuration exécutable)"
+    if program == "fdfind":
+        closed = closed_read_options("fd", args)
+        if closed:
+            return closed
+    closed = closed_read_options(program, args)
+    if closed:
+        return closed
     for option in RISKY_OPTIONS.get(program, ()):
         short = len(option) == 2          # « -o » colle sa valeur : « -ofichier »
         if any(arg == option or arg.startswith(option + "=") or (short and arg.startswith(option))
@@ -246,13 +408,23 @@ def risky_read(words):
                                                                  and "C" in arg) for arg in args):
         return "file --compile"
     if program in ("awk", "gawk", "mawk"):
-        if any(arg.startswith(("-f", "-i", "-l", "-E", "--file", "--include", "--load", "--exec", "--source"))
-               for arg in args) \
-                or any(AWK_DANGER.search(arg) for arg in args):
-            return "awk (programme)"
+        return "awk (interpréteur)"
+    if program == "find":
+        flags = {"-P", "-L", "-H", "-print", "-print0", "-ls", "-prune", "-quit", "-empty", "-readable", "-writable", "-executable", "-true", "-false", "-a", "-and", "-o", "-or", "-not", "!"}
+        valued = {"-name", "-iname", "-path", "-ipath", "-regex", "-iregex", "-type", "-size", "-mtime", "-mmin", "-maxdepth", "-mindepth", "-user", "-group", "-perm", "-newer", "-samefile", "-links"}
+        index = 0
+        while index < len(args):
+            arg = args[index]
+            index += 1
+            if arg in valued and index < len(args):
+                index += 1
+            elif arg.startswith("-") and arg not in flags:
+                return "find (expression non autorisée)"
+    if program == "diff" and any(arg.startswith(("--output", "--from-file", "--to-file")) for arg in args):
+        return "diff (option non autorisée)"
     if program == "uniq" and len([arg for arg in args if not arg.startswith("-")]) > 1:
         return "uniq (fichier de sortie)"
-    if program == "jq" and any(re.search(r"\benv\b|\$ENV|\$__loc__|input_filename", arg) for arg in args):
+    if program == "jq" and any(re.search(r"\benv\b|\bimport\b|\binclude\b|\$ENV|\$__loc__|input_filename", arg) for arg in args):
         return "jq (environnement)"
     if program == "curl":
         # Liste POSITIVE : vérifier qu'une page locale répond, rien d'autre (pas de config -K, pas
@@ -317,12 +489,13 @@ def apercu_action(words):
 def needs_card(tool, tool_input, mode):
     """Forme d'une commande pré-autorisée qui doit quand même passer par une carte.
 
-    Assistant, Code et Autonome : programmes de lecture pré-autorisés aux options qui écrivent ou
-    exécutent (`journalctl --vacuum…` l'est dès l'Assistant), et actions maison sensibles. Les modes
-    fermés n'en ont pas besoin : rien n'y passe sans être refusé."""
-    if tool != "Bash" or mode not in ("assistant", "code", "auto"):
+    Les variantes qui écrivent ou exécutent demandent une carte en modes d'action, et sont refusées
+    en Lecture. Le même contrôle s'applique donc aux programmes pré-autorisés dans les quatre modes."""
+    if tool != "Bash" or mode not in ("read", "assistant", "code", "auto"):
         return ""
     command = str(tool_input.get("command", ""))
+    if shell_evaluates(command):
+        return "expansion, redirection ou composition shell"
     parts = segments(command)
     if parts is None:
         return "commande illisible"
@@ -343,26 +516,80 @@ INTERPRETERS = {"python", "python3", "perl", "ruby", "node", "deno", "bun", "php
 
 
 def launcher_escape(command):
-    """Raison de refuser un lanceur du bureau qui lancerait un interpréteur, ou chaîne vide."""
+    """Catalogue fermé : aucun interpréteur, Lua, chemin exécutable ou option inconnue."""
     parts = segments(command)
     if parts is None:
         return "commande illisible"
+    desktop = {"hyprctl", "uwsm", "omarchy", "xdg-open", "systemctl", "wpctl", "pactl", "playerctl",
+               "brightnessctl", "notify-send", "makoctl", "bluetoothctl", "nmcli"}
+    if len(parts) > 1 and any(words and Path(leading_assignments(words)[1][0]).name in desktop
+                              for words in parts if leading_assignments(words)[1]):
+        return "commande composée avec un outil hors bac à sable"
     for words in parts:
-        words = [w for w in words if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w)]
+        assignments, words = leading_assignments(words)
         if not words:
             continue
         head = Path(words[0]).name
+        if head in INTERPRETERS | {"command", "nice", "timeout", "stdbuf"} and any(
+                re.search(r"(?:^|[/\s;|&])(?:hyprctl|uwsm|omarchy|xdg-open|systemctl)(?=\s|$)", word) for word in words[1:]):
+            return "lanceur indirect non autorisé"
         launcher = any(tuple([head] + words[1:len(key)]) == key for key in LAUNCHERS)
+        # Les options avant le sous-verbe ne doivent pas masquer un lanceur.
+        if head == "hyprctl":
+            reads = {"activewindow", "clients", "monitors", "workspaces", "binds", "version", "devices", "configerrors"}
+            rest = words[1:]
+            if rest[:1] == ["-j"]:
+                rest = rest[1:]
+            if not assignments and len(rest) == 1 and rest[0] in reads:
+                continue
+            launcher = True
+        elif head == "systemctl":
+            if "--user" not in words[1:]:
+                if not assignments and not closed_read_options("systemctl", words[1:]):
+                    continue
+                return "systemctl (forme absente du catalogue)"
+            launcher = True
+        elif head == "uwsm":
+            launcher = True
         if not launcher:
             continue
-        for word in words[1:]:
-            # Un joker (« pytho?3 ») ou une substitution se résout APRÈS le garde : refusé d'office.
-            if re.search(r"[*?\[\]{}$`\\]", word):
-                return f"{head} → {word}"
-            name = Path(word.strip("'\"")).name
-            base = re.sub(r"[0-9.]+$", "", name)
-            if name in INTERPRETERS or base in INTERPRETERS or name.endswith((".py", ".sh", ".pl", ".js")):
-                return f"{head} → {name}"
+        if assignments or any(re.search(r"[*\[\]{}$`\\~\n]", word) for word in words[1:]):
+            return f"{head} (expansion ou environnement)"
+        args = words[1:]
+        allowed = False
+        if head == "hyprctl":
+            dispatchers = {
+                "workspace": r"(?:[1-9]|1[0-9]|20)", "focusmonitor": r"[0-9]+",
+                "movefocus": r"[lrud]", "swapwindow": r"[lrud]", "fullscreen": r"[012]",
+                "togglefloating": r"", "killactive": r"",
+            }
+            if len(args) in (2, 3) and args[0] == "dispatch" and args[1] in dispatchers:
+                allowed = re.fullmatch(dispatchers[args[1]], args[2] if len(args) == 3 else "") is not None
+        elif head == "uwsm":
+            # Un identifiant du catalogue, jamais un binaire ou ses arguments.
+            rest = args[1:]
+            if rest[:2] == ["-t", "service"]:
+                rest = rest[2:]
+            if rest[:1] == ["--"]:
+                rest = rest[1:]
+            allowed = args[:1] == ["app"] and len(rest) == 1 and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*\.desktop", rest[0]) is not None
+        elif head in ("omarchy", "xdg-open"):
+            rest = args
+            if head == "omarchy":
+                rest = args[2:] if len(args) >= 2 and args[1] in ("browser", "webapp") else []
+            allowed = len(rest) == 1 and re.fullmatch(r"https?://[^\s'\"`$\\<>]+", rest[0]) is not None
+        elif head == "systemctl":
+            # --user doit être le seul préfixe des mutations ; les lectures gardent leurs options.
+            rest = args[1:] if args[:1] == ["--user"] else []
+            if rest and rest[0] in SYSTEMCTL_READ:
+                allowed = not closed_read_options("systemctl", args)
+            elif rest == ["daemon-reload"]:
+                allowed = True
+            elif rest and rest[0] in {"start", "stop", "restart", "reload", "try-restart", "enable", "disable", "mask", "unmask"}:
+                allowed = len(rest) > 1 and all(re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_@:.+-]*", unit)
+                                                for unit in rest[1:])
+        if not allowed:
+            return f"{head} (forme absente du catalogue)"
     return ""
 
 
@@ -400,6 +627,19 @@ def check(tool, tool_input, mode="assistant", private=(), forbid=()):
             return "Compagnon : écriture refusée hors de l'espace utilisateur."
     if tool == "Bash":
         command = str(tool_input.get("command", ""))
+        # Une question de délégation ne doit jamais atteindre un shell dans argv. Seul le hook
+        # ci-dessous transforme les requêtes JSON en un appel par fichier privé.
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            return "Compagnon : commande illisible, refusée."
+        if any(Path(token).name == "delegue.py" for token in tokens):
+            if (len(tokens) != 5 or Path(tokens[0]).name not in ("python3", "python")
+                    or Path(tokens[1]).name != "delegue.py" or tokens[3] != "--question-file"):
+                return "Compagnon : délégation attendue par fichier privé créé par le hook."
+        expansion = helper_expansion(command)
+        if expansion:
+            return "Compagnon : appel sensible non littéral, refusé."
         stripped = re.sub(r"'[^']*'", "''", command)
         barred = forbidden_word(unquoted(command), forbid)
         if barred:
@@ -419,23 +659,71 @@ def check(tool, tool_input, mode="assistant", private=(), forbid=()):
                     "jusqu'à la fermeture de la fenêtre. Utilise `omarchy launch browser <adresse>` pour une page, "
                     "`omarchy launch webapp <adresse>` pour une application web, "
                     "`uwsm app -t service -- <identifiant>.desktop` pour une application installée.")
+        if mode == "read" and needs_card(tool, tool_input, mode):
+            return "Compagnon : mode Lecture — cette variante peut écrire ou exécuter, action refusée."
     return None
+
+
+def delegation_input(tool, tool_input, policy_path, enabled):
+    """Réécrit AVANT le shell : la question arrive dans le JSON stdin du hook, pas dans ps.
+
+    Contrat officiel PreToolUse.updatedInput : la permission native est réévaluée sur la nouvelle
+    commande. Ne jamais renvoyer « allow » ici, ni élargir les droits du rôle appelé.
+    """
+    if tool != "Bash" or not enabled or policy_path is None:
+        return tool_input, None
+    try:
+        words = shlex.split(str(tool_input.get("command", "")))
+    except ValueError:
+        return tool_input, None
+    helper = str(Path(__file__).resolve().parent / "delegue.py")
+    if len(words) != 4 or words[:2] != ["python3", helper]:
+        return tool_input, None
+    import roles
+    if not roles.canonical_name(words[2]) or not words[3].strip() or len(words[3]) > 16000:
+        raise ValueError("délégation illisible")
+    descriptor, name = tempfile.mkstemp(prefix=policy_path.name + "-question-", dir=policy_path.parent)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(words[3])
+    # Aucun texte métier dans la commande, même celle du shell parent.
+    command = shlex.join(["python3", helper, words[2], "--question-file", name])
+    return dict(tool_input, command=command, description=""), Path(name)
 
 
 def main():
     # Fermé par défaut : pour Claude Code, seul le code 2 bloque. Une entrée illisible ou une
     # erreur du garde qui sortirait en code 1 laisserait l'outil s'exécuter.
+    question_file = None
     try:
         data = json.load(sys.stdin)
         if not isinstance(data, dict):
             raise ValueError("entrée non objet")
         args = sys.argv[1:]
         mode = next((word for word in args if word in ("chat", "read", "code", "assistant", "auto")), "assistant")
-        private = [args[i + 1] for i, arg in enumerate(args) if arg == "--private" and i + 1 < len(args)]
-        forbid = [args[i + 1] for i, arg in enumerate(args) if arg == "--forbid" and i + 1 < len(args)]
+        private, forbid, policy_path, delegate = [], [], None, False
+        if "--policy-file" in args:
+            path = Path(args[args.index("--policy-file") + 1])
+            # Ne jamais suivre un lien ni charger une politique lisible/modifiable par d'autres.
+            stat = path.lstat()
+            if path.is_symlink() or not path.is_file() or stat.st_uid != os.getuid() or stat.st_mode & 0o077 \
+                    or path.parent.stat().st_mode & 0o077 or stat.st_size > 65536:
+                raise ValueError("politique non privée")
+            policy = json.loads(path.read_text(encoding="utf-8"))
+            private, forbid = policy["private"], policy["forbid"]
+            policy_path, delegate = path, policy.get("delegate") is True
+            if not all(isinstance(items, list) and all(isinstance(item, str) for item in items)
+                       for items in (private, forbid)):
+                raise ValueError("politique illisible")
+        elif "--private" in args or "--forbid" in args:
+            raise ValueError("politique privée attendue par fichier")
+        original = data.get("tool_input", {}) or {}
+        updated, question_file = delegation_input(str(data.get("tool_name", "")), original, policy_path, delegate)
+        data["tool_input"] = updated
         refusal = check(str(data.get("tool_name", "")), data.get("tool_input", {}) or {}, mode, private, forbid)
     except Exception as error:  # noqa: BLE001 - tout échec du garde doit refuser
         print(f"Compagnon : garde en échec ({type(error).__name__}), action refusée.", file=sys.stderr)
+        if question_file is not None:
+            question_file.unlink(missing_ok=True)
         sys.exit(2)
     if not refusal:
         try:
@@ -451,6 +739,8 @@ def main():
                 ensure_ascii=False))
             sys.exit(0)
     if refusal:
+        if question_file is not None:
+            question_file.unlink(missing_ok=True)
         journal = Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state"))) / "omarchy-companion/journal.log"
         try:
             sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -461,6 +751,9 @@ def main():
             pass
         print(refusal, file=sys.stderr)
         sys.exit(2)
+    if question_file is not None:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "updatedInput": updated}},
+                         ensure_ascii=False))
     sys.exit(0)
 
 

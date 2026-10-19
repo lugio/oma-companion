@@ -78,7 +78,9 @@ def _run(argv):
 
 def reminder(minutes, message, lang="fr"):
     """Pose un rappel. Le texte dicté finit dans une unité systemd et dans une notification à
-    l'écran : ce qui ressemble à une valeur secrète y est masqué avant d'y arriver."""
+    l'écran : ce qui ressemble à une valeur secrète y est masqué avant d'y arriver.
+    Exception volontaire : le CLI Omarchy reçoit ce texte en argument ; ps et l'unité utilisateur
+    peuvent donc le montrer. Ce rappel est destiné à être affiché, pas à garder un texte privé."""
     message = storage.redact(message) if message else ""
     ok, _ = _run(["omarchy", "reminder", str(int(minutes))] + ([message] if message else []))
     if not ok:

@@ -101,7 +101,7 @@
     "erp_key": "Clé d'API Dolibarr (utilisateur en lecture seule conseillé)",
     "section_backup": "Sauvegarde",
     "backup_export_title": "EXPORTER",
-    "backup_export_hint": "Préférences, rôles, personnalité d'Alison et veille de la maison, dans un fichier à garder ou à emporter. Jamais de mot de passe, de jeton ni de mémoire.",
+    "backup_export_hint": "Préférences et veille de la maison ; personnalité et rôles si cochés. Les fichiers d’identifiants et la mémoire ne sont pas copiés.",
     "backup_pointers": "Inclure les chemins de coffre, comptes et adresses",
     "backup_pointers_hint": "Ce ne sont pas des secrets, mais ils disent où vos secrets se trouvent. Décoché par défaut, à l'export comme à la restauration.",
     "backup_export": "Exporter maintenant",
@@ -121,7 +121,7 @@
     "backup_maison": "Veille de la maison remplacée : {0} règle(s).",
     "backup_never": "Jamais restaurés : le mode, les accès allumés, les sites de confiance, la validation vocale, le rôle actif, le moteur et son adresse.",
     "backup_switched_off": "Accès éteints (destination changée) : {0}",
-    "backup_content_hint": "La personnalité et les descriptions de rôles partent telles quelles : n'y écrivez pas de secret.",
+    "backup_content_hint": "Les textes libres (personnalité, rôles, préférences et règles) peuvent contenir des informations confidentielles saisies par vous. Aucun filtre ne garantit leur absence. Décochez les contenus à exclure et examinez le JSON avant partage.",
     "backup_apply": "Restaurer",
     "backup_restored": "Restauré ({0} erreur(s)). L'état d'avant est dans le dossier des sauvegardes.",
     "persona_tag_shipped": "livrée avec le plugin",
@@ -422,7 +422,11 @@
     "role_can_ask_all": "peut demander à tous les rôles",
     "role_can_ask_none": "ne demande à personne",
     "voice_complete": "Compléter la voix (Parakeet)",
-    "voice_incomplete_hint": "La voix marche, mais il lui manque Parakeet, la transcription rapide (~0,3 s au lieu de ~2,5 s). Environ 465 Mo à télécharger, empreintes vérifiées."
+    "voice_incomplete_hint": "La voix marche, mais il lui manque Parakeet, la transcription rapide (~0,3 s au lieu de ~2,5 s). Environ 465 Mo à télécharger, empreintes vérifiées.",
+    "card_full_content": "Contenu complet disponible : faites défiler cette zone avant de valider.",
+    "backup_include_persona": "Inclure la personnalité (texte libre)",
+    "backup_include_roles": "Inclure les rôles (textes et descriptions)",
+    "backup_free_text_preview": "Textes libres du fichier — à examiner avant restauration"
   },
   "engine": {
     "prompt.language": "Réponds en français.",
@@ -742,6 +746,7 @@
     "helper.mail.read_usage": "usage : lire <dossier> <numéro>",
     "helper.mail.search_usage": "usage : chercher <mots…> [--dossier=X]",
     "helper.mail.verb": "verbe inconnu : {verb} (dossiers, liste, lire, chercher, tester)",
-    "helper.mail.server": "Courrier : le serveur a refusé ({reason})"
+    "helper.mail.server": "Courrier : le serveur a refusé ({reason})",
+    "err.delegate_input": "Usage : delegue.py <rôle> --question-file <fichier privé du garde>, ou question sur stdin pour un appelant de confiance (16 000 caractères maximum)."
   }
 }

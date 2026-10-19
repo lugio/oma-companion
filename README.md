@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-0.17.1-blue" /></a>
+  <a href="CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-0.17.2-blue" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" /></a>
   <a href="https://omarchy.org"><img alt="Omarchy" src="https://img.shields.io/badge/Omarchy-4-orange" /></a>
   <img alt="Quickshell" src="https://img.shields.io/badge/Quickshell-QML-41cd52" />
@@ -95,7 +95,7 @@ see [Voice](docs/voice.md).
 | 🧠 Memory | Notebook, daily notes, recall of past conversations, daily tidying while idle, *New* / *Delete conversation* | [Privacy](docs/privacy.md) |
 | 🎭 Roles | Personas that can only **remove** rights — writing, home, accounting examples included | [Permissions](docs/permissions.md#roles) |
 | 🔌 Connections | Home Assistant, IMAP mail, Dolibarr accounting — read-only or carded | [Connections](docs/connections.md) |
-| 💾 Backup | Export / import of preferences, preview before restoring, never any secret | [Privacy](docs/privacy.md#backup) |
+| 💾 Backup | Export / import of preferences, preview before restoring, optional free-form text | [Privacy](docs/privacy.md#backup) |
 | 🤖 Robot | Optional Reachy Mini body: gaze, gestures, voice, paired settings page | [Robot](docs/robot.md) |
 
 <a id="expressions"></a>

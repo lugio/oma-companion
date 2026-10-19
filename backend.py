@@ -415,7 +415,10 @@ def portail_prompt():
 DELEGATE_PROMPT = """Autres rôles installés, à qui tu peux poser UNE question quand elle relève de leur
 domaine : {roles}. Commande, à écrire EXACTEMENT ainsi, chemin complet, seule sur sa ligne (jamais
 de `cd`, jamais deux commandes enchaînées par `;` ou `&&`, sinon elle n'est plus pré-autorisée) :
-`{prefix} <rôle> "<question>"`. C'est un aller-retour en lecture
+`{prefix} <rôle> "<question>"`. Cette requête passe au garde dans le JSON de l'outil : il remplace
+la question par un fichier privé AVANT de lancer un shell. N'utilise ni printf/echo, ni here-document,
+ni commande composée pour transmettre la question ; un refus ne se contourne pas.
+C'est un aller-retour en lecture
 seule : le rôle appelé consulte ce qu'il sait et ce à quoi il a accès, il n'agit pas. Cite sa réponse
 en disant qui a répondu (« Compta répond : … »), ne la fonds pas dans la tienne, et n'enchaîne pas
 de délégations. Si la question est de ton ressort, réponds toi-même. Si la réponse dépend du domaine
@@ -3409,9 +3412,11 @@ class Companion:
                 self.emit("role_saved", ok=True, error="")
                 self.emit("roles", items=roles.available(config))
         elif command == "backup_export":
-            # Sauvegarde : jamais de secret ; les pointeurs (coffres, comptes, adresses) sur demande.
+            # Sauvegarde : textes libres potentiellement confidentiels, chacun peut les exclure.
             config = self.config()
-            path = sauvegarde.write(sauvegarde.export(config, persona_text(), bool(message.get("pointers"))))
+            path = sauvegarde.write(sauvegarde.export(config, persona_text(), bool(message.get("pointers")),
+                                                        include_persona=message.get("includePersona", True) is True,
+                                                        include_roles=message.get("includeRoles", True) is True))
             self.journal(self.t("journal.backup_export", name=path.name), "securite")
             self.emit("backup", done="export", path=str(path), items=sauvegarde.listing(), error="")
         elif command == "backup_list":

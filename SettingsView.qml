@@ -221,6 +221,8 @@ RowLayout {
                 spacing: Style.spacing.lg
                 property bool pointers: false
                 property bool replaceRoles: false
+                property bool includePersona: true
+                property bool includeRoles: true
                 onVisibleChanged: if (visible) settings.app.send("backup_list")
                 Label { text: settings.app.tr.backup_export_title }
                 Hint { text: settings.app.tr.backup_export_hint }
@@ -232,11 +234,22 @@ RowLayout {
                 }
                 Hint { text: settings.app.tr.backup_pointers_hint; opacity: 0.45 }
                 Hint { text: settings.app.tr.backup_content_hint; opacity: 0.45 }
+                SwitchRow {
+                    label: settings.app.tr.backup_include_persona || ""
+                    checked: backupPane.includePersona
+                    onToggled: backupPane.includePersona = !backupPane.includePersona
+                }
+                SwitchRow {
+                    label: settings.app.tr.backup_include_roles || ""
+                    checked: backupPane.includeRoles
+                    onToggled: backupPane.includeRoles = !backupPane.includeRoles
+                }
                 RowLayout {
                     spacing: Style.spacing.md
                     TextButton {
                         text: settings.app.tr.backup_export
-                        onClicked: settings.app.write({ command: "backup_export", pointers: backupPane.pointers })
+                        onClicked: settings.app.write({ command: "backup_export", pointers: backupPane.pointers,
+                                                        includePersona: backupPane.includePersona, includeRoles: backupPane.includeRoles })
                     }
                     TextButton {
                         text: settings.app.tr.backup_open_folder
@@ -329,6 +342,22 @@ RowLayout {
                         text: settings.app.backupPreview ? settings.app.t("backup_switched_off", settings.app.backupPreview.switchedOff.join(", ")) : ""
                     }
                     Hint { text: settings.app.tr.backup_never; opacity: 0.45 }
+                    Label { text: settings.app.tr.backup_free_text_preview || "" }
+                    QQC.ScrollView {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Style.space(180)
+                        contentWidth: availableWidth
+                        clip: true
+                        QQC.TextArea {
+                            readOnly: true
+                            selectByMouse: true
+                            wrapMode: TextEdit.Wrap
+                            textFormat: TextEdit.PlainText
+                            text: settings.app.backupPreview
+                                  ? (settings.app.backupPreview.personaText || "") + "\n"
+                                    + JSON.stringify(settings.app.backupPreview.roleContents || {}, null, 2) : ""
+                        }
+                    }
                     RowLayout {
                         spacing: Style.spacing.md
                         TextButton {

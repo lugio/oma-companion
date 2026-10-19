@@ -64,7 +64,7 @@ READ_ONLY_PREFIXES = [
     "pacman -Q", "wpctl get-volume", "bluetoothctl devices", "bluetoothctl show", "acpi", "upower",
 ]
 READ_ONLY_EXACT = [
-    "ps aux", "ps -ef", "hostname", "fastfetch", "ip a", "ip addr", "ip route", "ip link",
+    "ps aux", "ps -ef", "hostname", "ip a", "ip addr", "ip route", "ip link",
     "nmcli device", "nmcli device status", "nmcli general", "nmcli general status",
     "nmcli connection show", "nmcli connection show --active",
     "hyprctl activewindow", "hyprctl clients", "hyprctl monitors", "hyprctl workspaces", "hyprctl binds",
@@ -81,13 +81,14 @@ READ_ONLY_EXACT = [
 INTERACTIVE_TOOLS = ["AskUserQuestion", "ExitPlanMode", "EnterPlanMode",
                      "SendUserFile", "Artifact", "Workflow", "SendMessage"]
 
-def guard_hook(mode, private=(), forbid=()):
+def guard_hook(mode, private=(), forbid=(), delegate=False):
     """Le garde connaît le mode : en Code il ouvre les emplacements privés et les .env, en Assistant
-    non. Les emplacements privés déclarés dans les réglages lui sont passés en arguments, et les
-    mots interdits par le rôle actif avec eux — c'est le harnais qui porte la loi d'un rôle."""
-    command = (f"python3 {GUARD} {mode}"
-               + "".join(f" --private {shlex.quote(str(path))}" for path in private)
-               + "".join(f" --forbid {shlex.quote(str(word))}" for word in forbid))
+    non. La politique privée vit dans un fichier 600 : seul son chemin aléatoire paraît dans ps."""
+    command = f"python3 {shlex.quote(str(GUARD))} {mode}"
+    if private or forbid or delegate:
+        policy = private_file(json.dumps({"private": list(private), "forbid": list(forbid),
+                                          "delegate": bool(delegate)}), ".policy.json")
+        command += " --policy-file " + shlex.quote(policy)
     return {
         "PreToolUse": [{
             "matcher": "Read|Grep|Glob|Bash|Edit|MultiEdit|Write",
@@ -138,12 +139,11 @@ ASSISTANT_SETTINGS = {
 # écrivent ou exécutent (`find -delete`, `sort -o`, `rg --pre`…) : `guard.needs_card` les renvoie à
 # une carte (audit du 18/10). Les interpréteurs (`python3 -c`, `node -e`) n'en font plus partie.
 CODE_READ_ONLY = [
-    "sed -n", "awk", "cut", "sort", "uniq", "diff", "tree", "realpath", "basename", "dirname",
-    "rg", "fd", "find", "jq", "git status", "git log", "git diff",
-    "git show", "git branch", "git remote", "git ls-files", "git blame", "git stash list",
-    "npm ls", "pip list", "pip show", "qmllint", "shellcheck", "curl -s -o /dev/null",
+    "sed -n", "cut", "sort", "uniq", "diff", "tree", "realpath", "basename", "dirname",
+    "rg", "fd", "find", "jq", "shellcheck", "curl -s -o /dev/null",
 ]
 
+# AWK et les outils à configuration exécutable (git, npm, pip, qmllint) restent par carte.
 # Mode Code : session de dev complète. Ce qui LIT ne demande plus rien (les programmes ci-dessus et
 # ceux du mode Assistant) ; ce qui ÉCRIT, installe, lance ou sort sur le réseau garde sa carte. Le
 # hook garde la protection des secrets et du root, et refuse une lecture en vrac d'un emplacement
@@ -320,7 +320,7 @@ def build_settings(mode, home, private=(), mail=False, role=None, erp=False, por
                 rule for verb in ("gestes", "emotion", "danse")
                 for rule in (f"Bash({robot_prefix()} {verb}:*)", f"Bash({robot_prefix()} {verb})")]
     if delegate and mode != "chat":
-        # Un rôle en appelle un autre : `delegue.py <rôle> "<question>"`, hors bac à sable (il lance
+        # Un rôle en appelle un autre : `delegue.py <rôle>` (question sur stdin), hors bac à sable (il lance
         # le cerveau une fois, avec le garde du rôle appelé intersecté). Pré-autorisé : la
         # délégation est en LECTURE au plus, rien ne peut en sortir qu'une réponse.
         permissions["allow"] = list(permissions.get("allow", [])) + [f"Bash({delegue_prefix()}:*)"]
@@ -343,7 +343,7 @@ def build_settings(mode, home, private=(), mail=False, role=None, erp=False, por
                                          ("reachy.py", "robot"))
                    if not roles.allows(role, key)]
     forbid = tuple(dict.fromkeys(forbid))
-    return dict(base, permissions=permissions, sandbox=sandbox, hooks=guard_hook(mode, private, forbid))
+    return dict(base, permissions=permissions, sandbox=sandbox, hooks=guard_hook(mode, private, forbid, delegate))
 
 
 def ha_prefix():
@@ -532,6 +532,9 @@ class ClaudeSession:
     def forget_files(self):
         for path in self.files:
             try:
+                if path.endswith(".policy.json"):
+                    for question in Path(path).parent.glob(Path(path).name + "-question-*"):
+                        question.unlink(missing_ok=True)
                 os.unlink(path)
             except OSError:
                 pass
@@ -543,10 +546,15 @@ class ClaudeSession:
     def start(self, resume):
         # Mode « default » + demandes de permission relayées à l'hôte (le panneau).
         # Les outils pré-autorisés ne demandent rien ; tout le reste passe par la carte.
+        self.forget_files()
         settings = build_settings(self.mode, self.home, self.private, self.mail, self.role, self.erp, self.portail, self.delegate,
                                   self.robot)
-        self.forget_files()
         self.files = [private_file(json.dumps(settings), ".json"), private_file(self.system_prompt, ".txt")]
+        for entry in settings["hooks"]["PreToolUse"]:
+            for hook in entry["hooks"]:
+                words = shlex.split(hook["command"])
+                if "--policy-file" in words:
+                    self.files.append(words[words.index("--policy-file") + 1])
         argv = ["claude", "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
                 "--include-partial-messages", "--permission-mode", "default", "--permission-prompt-tool", "stdio",
                 "--settings", self.files[0], "--append-system-prompt-file", self.files[1], "--max-turns", "20"]
@@ -562,8 +570,12 @@ class ClaudeSession:
         else:
             self.session_id = str(uuid.uuid4())
             argv += ["--session-id", self.session_id]
-        self.process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                        stderr=subprocess.DEVNULL, text=True, cwd=workdir(), env=brain_env())
+        try:
+            self.process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                            stderr=subprocess.DEVNULL, text=True, cwd=workdir(), env=brain_env())
+        except OSError:
+            self.forget_files()
+            raise
         self.lines = queue.Queue()
         process, lines = self.process, self.lines
 
@@ -769,9 +781,9 @@ def describe_request(request, lang="fr"):
         return f"{title}\n$ {text}"
     if tool in ("Edit", "MultiEdit"):
         path = tool_input.get("file_path", "?")
-        old = str(tool_input.get("old_string", ""))[:300]
-        new = str(tool_input.get("new_string", ""))[:300]
-        return texts.t(lang, "card.edit", path=path) + f"\n— {old}\n+ {new}"
+        edits = tool_input.get("edits", []) if tool == "MultiEdit" else [tool_input]
+        return texts.t(lang, "card.edit", path=path) + "\n" + "\n".join(
+            f"— {str(edit.get('old_string', ''))}\n+ {str(edit.get('new_string', ''))}" for edit in edits)
     if tool == "WebFetch":
         # L'adresse ENTIÈRE, requête comprise : c'est là qu'une fuite se cacherait.
         url = str(tool_input.get("url", "?"))
@@ -782,8 +794,8 @@ def describe_request(request, lang="fr"):
         return texts.t(lang, "card.network", host=tool_input.get("host", "?"))
     if tool == "Write":
         content = str(tool_input.get("content", ""))
-        return texts.t(lang, "card.write", path=tool_input.get("file_path", "?"), lines=len(content.splitlines())) + f"\n{content[:400]}"
-    return f"{tool}\n{json.dumps(tool_input, ensure_ascii=False)[:400]}"
+        return texts.t(lang, "card.write", path=tool_input.get("file_path", "?"), lines=len(content.splitlines())) + f"\n{content}"
+    return f"{tool}\n{json.dumps(tool_input, ensure_ascii=False)}"
 
 
 def run_codex(system_prompt, history, question, model, session, on_partial, journal, on_permission=None, mode="assistant", home=False, lang="fr", private=(), memory="", mail=False, role=None, erp=False, portail=False, delegate=False, robot=False):

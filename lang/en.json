@@ -101,7 +101,7 @@
     "erp_key": "Dolibarr API key (read-only user advised)",
     "section_backup": "Backup",
     "backup_export_title": "EXPORT",
-    "backup_export_hint": "Preferences, roles, Alison's personality and the home watch, in a file to keep or carry over. Never a password, a token or memory.",
+    "backup_export_hint": "Preferences and home watch; personality and roles when selected. Credential files and memory are not copied.",
     "backup_pointers": "Include vault paths, accounts and addresses",
     "backup_pointers_hint": "They are not secrets, but they tell where your secrets are. Off by default, for export and restore alike.",
     "backup_export": "Export now",
@@ -121,7 +121,7 @@
     "backup_maison": "Home watch replaced: {0} rule(s).",
     "backup_never": "Never restored: the mode, switched-on access, trusted sites, voice approval, the active role, the engine and its address.",
     "backup_switched_off": "Access switched off (destination changed): {0}",
-    "backup_content_hint": "The personality and role descriptions go as they are: do not write secrets in them.",
+    "backup_content_hint": "Free-form text (personality, roles, preferences and rules) may contain confidential information you entered. No filter guarantees its absence. Exclude unwanted content and review the JSON before sharing.",
     "backup_apply": "Restore",
     "backup_restored": "Restored ({0} error(s)). The previous state is in the backups folder.",
     "persona_tag_shipped": "shipped with the plugin",
@@ -422,7 +422,11 @@
     "role_can_ask_all": "may ask every role",
     "role_can_ask_none": "asks nobody",
     "voice_complete": "Complete the voice (Parakeet)",
-    "voice_incomplete_hint": "The voice works, but Parakeet, the fast transcription (~0.3 s instead of ~2.5 s), is missing. About 465 MB to download, checksums verified."
+    "voice_incomplete_hint": "The voice works, but Parakeet, the fast transcription (~0.3 s instead of ~2.5 s), is missing. About 465 MB to download, checksums verified.",
+    "card_full_content": "Full content is available: scroll this area before approving.",
+    "backup_include_persona": "Include personality (free-form text)",
+    "backup_include_roles": "Include roles (texts and descriptions)",
+    "backup_free_text_preview": "Free-form text in this file — review before restoring"
   },
   "engine": {
     "prompt.language": "Always answer in English.",
@@ -742,6 +746,7 @@
     "helper.mail.read_usage": "Usage: lire <folder> <number>",
     "helper.mail.search_usage": "Usage: chercher <words…> [--dossier=X]",
     "helper.mail.verb": "Unknown command: {verb} (dossiers, liste, lire, chercher, tester)",
-    "helper.mail.server": "Mail server refused the request ({reason})"
+    "helper.mail.server": "Mail server refused the request ({reason})",
+    "err.delegate_input": "Usage: delegue.py <role> --question-file <private guard file>, or question on stdin for a trusted caller (at most 16,000 characters)."
   }
 }

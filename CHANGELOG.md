@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.17.2] — 2026-10-19
+
+### Security
+- Reject mutating or executable variants of pre-authorized read commands in Read mode; require cards
+  in action modes. Preserve arguments after the command name; remove AWK and configuration-driven tools from automatic approvals.
+- Reject shell expansions in sensitive helper calls; restrict desktop launchers to a closed catalogue.
+- Reject non-canonical imported role names before checking existing and active roles.
+- Move guard private paths and restrictions into private policy files; rewrite delegated questions to single-use private files before shell execution.
+- Show complete edits, multi-edits and file creations in scrollable approval cards.
+- Use a fresh isolated browser profile for each supported web preview and clean it after exit.
+
+### Changed
+- Let users exclude personality and roles from backups and inspect their full text in restore previews.
+  Clarify that free-form text may contain confidential information.
+- Document the intentional reminder-argument exception, systemctl permissions and Claude Code 2.1.*
+  family certification.
+
 ## [0.17.1] — 2026-10-19
 
 ### Security
@@ -25,8 +42,9 @@ First public release.
   hands-free conversation, optional echo-cancelled microphone example.
 - Memory: notebook, daily notes, recall, daily tidying; *New* and *Delete conversation* buttons.
 - Optional connections: Home Assistant, IMAP mail, Dolibarr — credentials in a vault or the system keyring.
-- Backup and restore of preferences with preview; secrets never exported.
+- Backup and restore of preferences with preview; credential files are not copied (free-form text may contain confidential information).
 - Optional Reachy Mini body with a paired settings page.
 
+[0.17.2]: https://github.com/lugio/oma-companion/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/lugio/oma-companion/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/lugio/oma-companion/releases/tag/v0.17.0

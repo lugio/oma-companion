@@ -3,11 +3,12 @@
 
 Un fichier JSON lisible, versionné, qu'on garde ou qu'on emporte sur une autre machine.
 
-- Ce qui part TOUJOURS : les préférences (PREFERENCES), les rôles du dossier standard, la personnalité
-  choisie d'Alison, la veille de la maison (`maison.json`).
+- Ce qui part TOUJOURS : les préférences (PREFERENCES), la veille de la maison (`maison.json`).
+- Personnalité et rôles sont des textes libres, inclus par défaut mais excluables : ils peuvent contenir
+  des valeurs confidentielles saisies par l'utilisateur. Aucun filtrage ne garantit leur absence.
 - Ce qui ne part QUE sur demande : les POINTEURS (chemins de coffre, comptes, adresses). Ce ne sont pas des
   secrets, mais ils disent où les secrets se trouvent et à quel compte ils ouvrent.
-- Ce qui ne part JAMAIS : jetons et mots de passe (ha.json, coffres), mémoire et conversations, extensions
+- Fichiers jamais copiés : ha.json, coffres, mémoire et conversations, extensions
   privées (du code), le mode, les accès allumés, les sites de confiance, la validation vocale, le rôle actif.
 
 Restaurer : aperçu d'abord (`preview`), sauvegarde automatique de l'état présent, puis application. Une
@@ -68,7 +69,7 @@ def _role_form(role):
             "delegate": None if role.get("delegate") is None else list(role["delegate"])}
 
 
-def export(config, persona_text="", pointers=False):
+def export(config, persona_text="", pointers=False, include_persona=True, include_roles=True):
     """Le contenu d'une sauvegarde (un dict), sans rien écrire."""
     settings = {key: config[key] for key in PREFERENCES if key in config}
     if pointers:
@@ -77,14 +78,14 @@ def export(config, persona_text="", pointers=False):
         if isinstance(value, str):
             settings[key] = URL_SECRET_PARAM.sub(r"\1", URL_CREDENTIALS.sub("", value))
     found = {}
-    for card in roles.available(config):
+    for card in roles.available(config) if include_roles else ():
         role = roles.load(config, card["name"])
         if role and roles.editable(role):          # un corpus branché par rolePaths reste où il est
             found[card["name"]] = _role_form(role)
     return {"format": FORMAT, "version": VERSION,
             "created": datetime.datetime.now().isoformat(timespec="seconds"),
             "pointers": bool(pointers), "settings": settings, "roles": found,
-            "persona": persona_text or "",
+            **({"persona": persona_text or ""} if include_persona else {}),
             "maison": {"rules": [dict(rule, who=[list(w) for w in rule.get("who", ())]) for rule in maison.load()]}}
 
 
@@ -173,13 +174,15 @@ def preview(data, config, defaults, pointers=False):
     settings = importable_settings(data, defaults, pointers, config)
     changed = [{"key": k, "now": config.get(k), "then": v} for k, v in settings.items() if config.get(k) != v]
     existing = {card["name"] for card in roles.available(config)}
-    names = [n for n in (data.get("roles") or {}) if isinstance(n, str) and roles.NAME_OK.match(n)]
+    names = [n for raw in (data.get("roles") or {}) if (n := roles.canonical_name(raw))]
     rules = (data.get("maison") or {}).get("rules") or []
     return {"created": str(data.get("created", ""))[:19], "settings": changed,
             "ignored": sorted(k for k in (data.get("settings") or {}) if k in NEVER),
             "pointersInFile": bool(data.get("pointers")),
             "rolesNew": sorted(n for n in names if n not in existing),
             "rolesReplaced": sorted(n for n in names if n in existing),
+            "personaText": data.get("persona", ""),
+            "roleContents": {n: data["roles"][n] for n in names},
             "persona": bool(data.get("persona")), "personaReset": "persona" in data and not data.get("persona"),
             "maisonRules": len(rules) if isinstance(rules, list) else 0,
             "maisonPresent": isinstance(rules, list) and "maison" in data,
@@ -192,9 +195,10 @@ def apply(data, config, defaults, write_persona, pointers=False, replace_roles=F
     errors = []
     pending = []
     existing = {card["name"] for card in roles.available(config)}
-    for name, form in (data.get("roles") or {}).items():
-        if not isinstance(name, str) or not roles.NAME_OK.match(name) or not isinstance(form, dict):
-            errors.append(f"{name}: backup.err_role")
+    for raw_name, form in (data.get("roles") or {}).items():
+        name = roles.canonical_name(raw_name)
+        if not name or not isinstance(form, dict):
+            errors.append(f"{raw_name!r}: backup.err_role")
             continue
         if name in existing and not replace_roles:
             continue

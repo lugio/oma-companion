@@ -66,6 +66,14 @@ LEGACY_ACCESS = {"ha": "home"}
 MEMORIES = ("separate", "shared")
 
 
+def canonical_name(raw):
+    """Un seul nom littéral de dossier : aucune correction silencieuse avant les contrôles."""
+    if not isinstance(raw, str):
+        return ""
+    name = raw.strip().lower()
+    return name if name == raw and NAME_OK.fullmatch(name) else ""
+
+
 def expand(path):
     return Path(os.path.expanduser(os.path.expandvars(str(path)))).resolve()
 
@@ -168,8 +176,8 @@ _cache = {}
 
 def load(config, name):
     """Le rôle nommé, ou None. Ne lève jamais : un rôle illisible n'existe pas, il ne casse rien."""
-    name = str(name or "").strip().lower()
-    if not NAME_OK.match(name):
+    name = canonical_name(name)
+    if not name:
         return None
     known = _cache.get(name)
     if known:
@@ -227,7 +235,7 @@ def available(config):
         except OSError:
             continue
         for child in children:
-            if child.name in seen or not NAME_OK.match(child.name):
+            if child.name in seen or not NAME_OK.fullmatch(child.name):
                 continue
             role = load(config, child.name)
             if role:
@@ -311,7 +319,7 @@ def examples(lang="fr"):
         return []
     out = []
     for item in data.get("roles", []) if isinstance(data, dict) else []:
-        if not isinstance(item, dict) or not NAME_OK.match(str(item.get("name", ""))):
+        if not isinstance(item, dict) or not NAME_OK.fullmatch(str(item.get("name", ""))):
             continue
         pick = lambda field: (item.get(field) or {}).get(lang) or (item.get(field) or {}).get("en", "")  # noqa: E731
         out.append({"name": item["name"], "label": pick("label"), "description": pick("description"),
@@ -343,8 +351,8 @@ def save(config, form, dry_run=False):
     (`persona`) ; un fichier protégé (clé, coffre) est refusé comme au chargement.
     """
     import storage
-    name = str(form.get("name") or "").strip().lower()
-    if not NAME_OK.match(name):
+    name = canonical_name(form.get("name"))
+    if not name:
         return "err.role_name"
     existing = load(config, name)
     if existing and not editable(existing):
@@ -373,7 +381,7 @@ def save(config, form, dry_run=False):
                 "description": str(form.get("description") or "").strip()[:200],
                 "modes": allowed, "access": access, "forbid": forbid, "memory": memory}
     if isinstance(form.get("delegate"), list):        # absent ou null = tous les rôles
-        manifest["delegate"] = [str(n).strip().lower() for n in form["delegate"] if NAME_OK.match(str(n).strip().lower())]
+        manifest["delegate"] = [n for raw in form["delegate"] if (n := canonical_name(raw))]
     if persona_path:
         manifest["persona"] = persona_path
     elif existing and existing.get("source") and not persona_text \
@@ -392,8 +400,8 @@ def save(config, form, dry_run=False):
 def delete(config, name):
     """Supprime un rôle du dossier standard (et rien d'autre). Le carnet séparé du rôle, dans
     l'état privé, reste : c'est de la mémoire, on ne l'efface pas sans le demander."""
-    name = str(name or "").strip().lower()
-    if not NAME_OK.match(name):
+    name = canonical_name(name)
+    if not name:
         return "err.role_name"
     role = load(config, name)
     if not role:

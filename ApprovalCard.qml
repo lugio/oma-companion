@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls as QQC
 import qs.Commons
 import qs.Ui
 
@@ -46,25 +47,42 @@ Rectangle {
         }
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: detail.implicitHeight + Style.space(14)
+            implicitHeight: Math.min(detail.implicitHeight, Style.space(240)) + Style.space(16)
             radius: Style.cornerRadius
             color: Color.menu.background
-            TextEdit {
-                id: detail
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
+            Flickable {
+                id: detailScroll
+                anchors.fill: parent
                 anchors.margins: Style.space(8)
-                text: card.permission ? card.app.permissionText : card.app.actionText
-                readOnly: true
-                selectByMouse: true
-                wrapMode: TextEdit.Wrap
-                textFormat: TextEdit.PlainText
-                color: Color.menu.text
-                selectionColor: Style.selectionFill
-                font.family: Style.font.menuFamily
-                font.pixelSize: Style.font.body
+                clip: true
+                contentHeight: detail.implicitHeight
+                boundsBehavior: Flickable.StopAtBounds
+                QQC.ScrollBar.vertical: QQC.ScrollBar {}
+                onContentHeightChanged: contentY = 0
+                TextEdit {
+                    id: detail
+                    width: detailScroll.width
+                    height: implicitHeight
+                    text: card.permission ? card.app.permissionText : card.app.actionText
+                    onTextChanged: detailScroll.contentY = 0
+                    readOnly: true
+                    selectByMouse: true
+                    wrapMode: TextEdit.Wrap
+                    textFormat: TextEdit.PlainText
+                    color: Color.menu.text
+                    selectionColor: Style.selectionFill
+                    font.family: Style.font.menuFamily
+                    font.pixelSize: Style.font.body
+                }
             }
+        }
+        Text {
+            Layout.fillWidth: true
+            visible: detail.implicitHeight > detailScroll.height
+            text: card.app.tr.card_full_content || ""
+            wrapMode: Text.Wrap
+            color: Color.menu.text
+            font.pixelSize: Style.font.caption
         }
         RowLayout {
             Layout.fillWidth: true

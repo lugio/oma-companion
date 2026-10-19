@@ -38,8 +38,15 @@ import tempfile
 import threading
 import time
 import unittest
+import shlex
 from unittest import mock
 from unittest.mock import patch
+
+def guard_policy(command):
+    """La loi du rôle est désormais transportée par fichier privé, pas dans argv."""
+    words = shlex.split(command)
+    return json.loads(Path(words[words.index("--policy-file") + 1]).read_text())
+
 
 SPEC = importlib.util.spec_from_file_location("backend", Path(__file__).parents[1] / "backend.py")
 backend = importlib.util.module_from_spec(SPEC)
@@ -369,7 +376,7 @@ class ModesAndVoiceTests(unittest.TestCase):
         # Depuis le 19/09 le mode Code pré-autorise aussi les LECTURES (onze cartes pour un jeu) ;
         # tout ce qui écrit, installe, lance ou sort sur le réseau garde sa carte.
         self.assertIn("allow", code["permissions"])
-        for lecture in ("Bash(cat:*)", "Bash(sed -n:*)", "Bash(git log:*)", "Bash(rg:*)"):
+        for lecture in ("Bash(cat:*)", "Bash(sed -n:*)", "Bash(rg:*)"):
             self.assertIn(lecture, code["permissions"]["allow"])
         for action in ("Bash(mkdir:*)", "Bash(npm install:*)", "Bash(curl:*)", "Bash(git push:*)",
                        "Bash(python3:*)", "Write", "Edit"):
@@ -398,7 +405,8 @@ class ModesAndVoiceTests(unittest.TestCase):
                 self.assertEqual("Read(~/.atelier/**)" in private["permissions"]["deny"], mode == "assistant")
                 self.assertNotIn("Read(~/.atelier/**)", deny)   # rien de personnel sans réglage
                 hook = private["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
-                self.assertIn(f"guard.py {mode} --private '~/.atelier'", hook)   # cité : le shell n'étend pas ~
+                self.assertNotIn("~/.atelier", hook)
+                self.assertEqual(guard_policy(hook)["private"], ["~/.atelier"])
                 self.assertEqual(any("ha.py" in c for c in sandbox["excludedCommands"]), ha)
         self.assertIn("hyprctl *", self.agents.build_settings("assistant", False)["sandbox"]["excludedCommands"])
         code_excluded = self.agents.build_settings("code", False)["sandbox"]["excludedCommands"]
@@ -1497,7 +1505,7 @@ class MemoryTests(unittest.TestCase):
         import apercu
         with tempfile.TemporaryDirectory() as directory:
             state = Path(directory)
-            started, killed = [], []
+            started, killed, profiles = [], [], []
 
             class FakeProcess:
                 pid = 4242
@@ -1505,12 +1513,16 @@ class MemoryTests(unittest.TestCase):
 
             def fake_popen(argv, **kwargs):
                 started.append((argv, kwargs.get("env", {}).get("MOZ_APP_REMOTINGNAME")))
+                profile = Path(argv[argv.index("--profile") + 1])
+                profiles.append((profile, profile.stat().st_mode & 0o777))
                 return FakeProcess()
 
             with patch.object(apercu, "PROFILE", state / "apercu-profile"), \
                  patch.object(apercu, "PID_FILE", state / "apercu.pid"), \
                  patch.object(apercu.subprocess, "Popen", fake_popen), \
                  patch.object(apercu.os, "kill", lambda pid, sig: killed.append(pid)), \
+                 patch.object(apercu, "watch_cleanup"), \
+                 patch.object(apercu, "wait_exit", return_value=True), \
                  patch.object(apercu, "default_browser", lambda: "firefox.desktop"):
                 self.assertIsNone(apercu.open_window("javascript:alert(1)"))     # ni page ni fichier
                 self.assertIsNone(apercu.open_window("/nulle/part.html"))
@@ -1522,8 +1534,9 @@ class MemoryTests(unittest.TestCase):
             argv, remoting = started[0]
             self.assertEqual(remoting, apercu.WINDOW_CLASS)
             self.assertIn("--profile", argv)
-            self.assertIn(str(state / "apercu-profile"), argv)
-            self.assertEqual(oct((state / "apercu-profile").stat().st_mode & 0o777), "0o700")
+            self.assertTrue(profiles[0][0].name.startswith("apercu-profile-"))
+            self.assertNotEqual(profiles[0][0], profiles[1][0])
+            self.assertTrue(all(mode == 0o700 and not path.exists() for path, mode in profiles))
 
     def test_the_engine_reuses_the_same_launcher(self):
         import apercu
@@ -3390,8 +3403,8 @@ class RoleTests(unittest.TestCase):
         # Et éteinte veut dire REFUSÉE, pas « demande une carte » : sinon l'aide repassait par
         # un simple clic et « ce rôle ne touche pas à la maison » n'était qu'une façon de parler.
         command = settings["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
-        self.assertIn("--forbid ha.py", command)
-        self.assertIn("--forbid mail.py", command)
+        self.assertIn("ha.py", guard_policy(command)["forbid"])
+        self.assertIn("mail.py", guard_policy(command)["forbid"])
         self.assertIsNotNone(guard.check("Bash", {"command": "python3 ha.py on light.salon"},
                                          "assistant", (), ("ha.py", "mail.py")))
 
@@ -3436,7 +3449,7 @@ class RoleTests(unittest.TestCase):
             # Et l'interdit part bien au garde natif, pas seulement à l'appel direct.
             hook = agents_module.build_settings("assistant", home=False, role=role)["hooks"]
             command = hook["PreToolUse"][0]["hooks"][0]["command"]
-            self.assertIn("--forbid smtp", command)
+            self.assertIn("smtp", guard_policy(command)["forbid"])
 
     # ----- Ce qu'un dossier de rôle ne doit pas pouvoir faire -----
 
@@ -3862,7 +3875,7 @@ class ErpReaderTests(unittest.TestCase):
         closed = {"name": "x", "modes": agents_module.MODES, "access": ("mail",), "forbid": ()}
         self.assertFalse(allowed("assistant", closed))
         hook = agents_module.build_settings("assistant", False, role=closed, erp=True)["hooks"]
-        self.assertIn("--forbid dolibarr.py", hook["PreToolUse"][0]["hooks"][0]["command"])
+        self.assertIn("dolibarr.py", guard_policy(hook["PreToolUse"][0]["hooks"][0]["command"])["forbid"])
 
     def test_the_prompt_only_mentions_it_where_it_works(self):
         with tempfile.TemporaryDirectory() as state:
@@ -4256,7 +4269,7 @@ class PortailTests(unittest.TestCase):
         closed = {"name": "x", "modes": agents_module.MODES, "access": ("mail",), "forbid": ()}
         shut = rules("assistant", role=closed)
         self.assertFalse(any("portail.py" in r for r in shut["permissions"]["allow"]))
-        self.assertIn("--forbid portail.py", shut["hooks"]["PreToolUse"][0]["hooks"][0]["command"])
+        self.assertIn("portail.py", guard_policy(shut["hooks"]["PreToolUse"][0]["hooks"][0]["command"])["forbid"])
 
     def test_a_setting_posed_from_outside_is_honoured_at_the_next_question(self):
         """`omarchy bar set … portailUrl …` ne passe pas par « save » : le pointeur doit suivre quand
@@ -5065,7 +5078,7 @@ class RobotTests(unittest.TestCase):
         role = {"name": "compta", "access": ("mail",), "forbid": ()}
         closed = agents_module.build_settings("assistant", False, robot=True, role=role)
         self.assertNotIn(f"{prefix} *", closed["sandbox"]["excludedCommands"])
-        self.assertIn("reachy.py", json.dumps(closed["hooks"]))
+        self.assertIn("reachy.py", guard_policy(closed["hooks"]["PreToolUse"][0]["hooks"][0]["command"])["forbid"])
 
     def test_regarder_says_why_when_the_camera_is_elsewhere(self):
         import subprocess
@@ -8675,7 +8688,7 @@ class GenericAlisonTests(unittest.TestCase):
 
 
 class BackupTests(unittest.TestCase):
-    """Sauvegarde / restauration (18/10) : jamais de secret, pointeurs sur demande, rien ne se rallume."""
+    """Sauvegarde / restauration (18/10) : fichiers d’identifiants exclus, pointeurs sur demande, rien ne se rallume."""
 
     def setUp(self):
         import sauvegarde
@@ -8742,7 +8755,7 @@ class BackupTests(unittest.TestCase):
             self.assertEqual({p: p.read_bytes() for p in self.dir.rglob("*") if p.is_file()}, before)
             self.assertFalse((roles.STANDARD / "nouveau").exists())
 
-    def test_export_never_carries_secrets_and_pointers_only_on_request(self):
+    def test_export_excludes_credential_fields_and_pointers_only_on_request(self):
         data = self.s.export(self.config, "Tu tutoies.")
         self.assertEqual(data["settings"]["name"], "Nina")
         for key in ("mailVault", "mailAccount", "mode", "home", "trustedSites", "voiceDecide", "role"):
@@ -9212,15 +9225,17 @@ class CoreAuditTests(unittest.TestCase):
 
     def test_plain_reads_stay_without_a_card(self):
         for command in ("find . -name '*.py'", "sort f", "rg foo", "sed -n '1,20p' f", "sed -n '5p;10p' f",
-                        "awk '{print $1}' f", "git log --oneline", "git remote -v", "uniq a", "jq . f",
-                        "curl -s -o /dev/null http://localhost:3000", "cat 'a;b'", "git branch", "git branch -a",
-                        "git remote show origin", "sort -r f",
+                        "uniq a", "jq . f",
+                        "curl -s -o /dev/null http://localhost:3000", "cat 'a;b'", "sort -r f",
                         "curl -s -o /dev/null -w '%{http_code}' http://localhost:8010/"):
             self.assertEqual(self.card(command), "", command)
 
     def test_interpreters_are_no_longer_pre_authorized(self):
         self.assertNotIn("python3 -c", agents_module.CODE_READ_ONLY)
         self.assertNotIn("node -e", agents_module.CODE_READ_ONLY)
+        for program in ("awk", "git", "npm", "pip", "qmllint"):
+            self.assertFalse(any(rule.split()[0] == program for rule in agents_module.CODE_READ_ONLY))
+            self.assertTrue(self.card(program + " --version"))
 
     def test_the_guard_answers_ask_rather_than_letting_it_through(self):
         import subprocess
