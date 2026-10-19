@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.17.3] — 2026-10-19
+
+### Security
+- Verify the IMAP server's certificate and hostname before sending the mailbox login. Python's
+  `imaplib.IMAP4_SSL` checks neither by default, so an attacker on the network could impersonate the
+  mail server and receive the credentials. An untrusted certificate now stops the connection with a
+  clear message. Reported during the Omarchy store review.
+
 ## [0.17.2] — 2026-10-19
 
 ### Security
@@ -45,6 +53,7 @@ First public release.
 - Backup and restore of preferences with preview; credential files are not copied (free-form text may contain confidential information).
 - Optional Reachy Mini body with a paired settings page.
 
+[0.17.3]: https://github.com/lugio/oma-companion/compare/v0.17.2...v0.17.3
 [0.17.2]: https://github.com/lugio/oma-companion/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/lugio/oma-companion/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/lugio/oma-companion/releases/tag/v0.17.0

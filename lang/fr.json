@@ -725,6 +725,7 @@
     "helper.detail.7": "service du robot pas prêt (état : {state})",
     "helper.detail.8": "connecté · {name} {version} · moteurs : {motors}",
     "helper.detail.9": "Dolibarr joignable, version {version}. Lecture seule.",
+    "helper.detail.10": "certificat de {host} non reconnu : connexion arrêtée, mot de passe non envoyé",
     "helper.mail.connected": "Connexion OK — {email}, {count} dossier(s)",
     "err.image.0": "adresse non https",
     "err.image.1": "adresse du réseau local",

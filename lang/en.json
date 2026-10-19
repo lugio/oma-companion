@@ -725,6 +725,7 @@
     "helper.detail.7": "Robot service not ready (state: {state})",
     "helper.detail.8": "Connected · {name} {version} · motors: {motors}",
     "helper.detail.9": "Dolibarr connected, version {version}. Read only.",
+    "helper.detail.10": "Certificate of {host} not trusted: connection stopped, password not sent.",
     "helper.mail.connected": "Connected — {email}, {count} folder(s)",
     "err.image.0": "HTTPS address required",
     "err.image.1": "Local network address refused",

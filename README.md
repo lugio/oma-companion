@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-0.17.2-blue" /></a>
+  <a href="CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-0.17.3-blue" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" /></a>
   <a href="https://omarchy.org"><img alt="Omarchy" src="https://img.shields.io/badge/Omarchy-4-orange" /></a>
   <img alt="Quickshell" src="https://img.shields.io/badge/Quickshell-QML-41cd52" />

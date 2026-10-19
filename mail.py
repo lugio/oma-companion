@@ -27,6 +27,7 @@ import imaplib
 import json
 import texts
 import os
+import ssl
 from pathlib import Path
 import re
 import sys
@@ -93,8 +94,12 @@ def connect():
     host = str(account["imap_host"])
     port = int(account.get("imap_port") or 993)
     try:
-        box = imaplib.IMAP4_SSL(host, port, timeout=TIMEOUT)
+        # imaplib ne vérifie ni le certificat ni le nom du serveur par défaut : contexte vérifiant
+        # explicite, sinon un intermédiaire réseau recevrait le mot de passe (relecture du store, #12144).
+        box = imaplib.IMAP4_SSL(host, port, ssl_context=ssl.create_default_context(), timeout=TIMEOUT)
         box.login(str(account["email"]), str(account["password"]))
+    except ssl.SSLCertVerificationError:
+        raise RuntimeError(texts.t(os.environ.get("COMPANION_LANGUAGE", "fr"), "helper.detail.10", host=host))
     except imaplib.IMAP4.error:
         raise RuntimeError(texts.t(os.environ.get("COMPANION_LANGUAGE", "fr"), "helper.detail.4", host=host))
     except OSError as trouble:
