@@ -22,6 +22,7 @@
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#features">Features</a> ·
+  <a href="#expressions">Expressions</a> ·
   <a href="#safety">Safety</a> ·
   <a href="#screenshots">Screenshots</a> ·
   <a href="docs/">Documentation</a>
@@ -88,6 +89,7 @@ see [Voice](docs/voice.md).
 | Area | What you get | Details |
 |---|---|---|
 | 💬 Chat | Text or voice, streamed answers, code blocks, images on click | — |
+| 😊 Expressions | A live face that listens, thinks, speaks with her real voice volume, waits for your click, and shows what she is doing | [Expressions](docs/expressions.md) |
 | 🛡️ Guard | Five modes, approval cards, private locations, blocked root and secrets | [Permissions](docs/permissions.md) |
 | 🎙️ Voice | Piper speech, Vosk wake word (*“Hey Alison”*), Parakeet / Whisper transcription, hands-free conversation | [Voice](docs/voice.md) |
 | 🧠 Memory | Notebook, daily notes, recall of past conversations, daily tidying while idle, *New* / *Delete conversation* | [Privacy](docs/privacy.md) |
@@ -95,6 +97,25 @@ see [Voice](docs/voice.md).
 | 🔌 Connections | Home Assistant, IMAP mail, Dolibarr accounting — read-only or carded | [Connections](docs/connections.md) |
 | 💾 Backup | Export / import of preferences, preview before restoring, never any secret | [Privacy](docs/privacy.md#backup) |
 | 🤖 Robot | Optional Reachy Mini body: gaze, gestures, voice, paired settings page | [Robot](docs/robot.md) |
+
+<a id="expressions"></a>
+
+## 😊 A face that tells the truth
+
+<p align="center">
+  <img src="docs/assets/expressions/idle.gif" width="96" alt="Idle" />
+  <img src="docs/assets/expressions/listening.gif" width="96" alt="Listening" />
+  <img src="docs/assets/expressions/thinking.gif" width="96" alt="Thinking" />
+  <img src="docs/assets/expressions/speaking.gif" width="96" alt="Speaking" />
+  <img src="docs/assets/expressions/waiting.gif" width="96" alt="Waiting for your approval" />
+</p>
+
+<p align="center"><sub>idle · listening · thinking · speaking · waiting for your approval</sub></p>
+
+Alison's face follows what really happens: the listening crown only appears when the microphone is open,
+her mouth moves with the real volume of her voice, and while the agent works she shows *what* it is doing —
+searching, reading, writing code, running a command, reading mail, or dreaming while she tidies her memory.
+Drawn from your theme's colours. → [All expressions](docs/expressions.md)
 
 <a id="safety"></a>
 
@@ -155,6 +176,7 @@ mode, the role and the guard before the agent sees a request.
 
 | Guide | Contents |
 |---|---|
+| [Expressions](docs/expressions.md) | Every mood and activity of her face, animated |
 | [Permissions](docs/permissions.md) | Modes, cards, always-allowed families, roles, private locations |
 | [Voice](docs/voice.md) | Installing the voice, wake word, transcription engines, echo cancellation |
 | [Connections](docs/connections.md) | Home Assistant, mail, accounting, keyring and vault credentials, extensions |

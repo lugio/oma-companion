@@ -2,6 +2,7 @@
 
 | Guide | Contents |
 |---|---|
+| [Expressions](expressions.md) | Every mood and activity of her face, animated |
 | [Permissions](permissions.md) | Modes, cards, always-allowed families, roles, private locations |
 | [Voice](voice.md) | Installing the voice, wake word, transcription engines, echo cancellation |
 | [Connections](connections.md) | Home Assistant, mail, accounting, credentials, private extensions |

@@ -24,6 +24,8 @@ dans les Réglages.
 - **Micro sans écho** facultatif, avec l'exemple PipeWire fourni ([voix](voice.md)) ; pour l'annuler,
   retirez le fichier copié puis redémarrez PipeWire.
 - **Connexions** facultatives (Home Assistant, courrier, comptabilité) avec vos propres identifiants.
+- **Un visage expressif** : elle écoute, réfléchit, parle au volume réel de sa voix, attend votre clic et montre
+  ce qu'elle fait (recherche, lecture, code, courrier…) — voir [les expressions](expressions.md).
 - **Robot** Reachy Mini facultatif.
 
 La documentation détaillée est en anglais : [docs](README.md).
