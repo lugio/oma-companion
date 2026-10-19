@@ -63,6 +63,7 @@ First public release.
 - Backup and restore of preferences with preview; credential files are not copied (free-form text may contain confidential information).
 - Optional Reachy Mini body with a paired settings page.
 
+[0.17.4]: https://github.com/lugio/oma-companion/compare/v0.17.3...v0.17.4
 [0.17.3]: https://github.com/lugio/oma-companion/compare/v0.17.2...v0.17.3
 [0.17.2]: https://github.com/lugio/oma-companion/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/lugio/oma-companion/compare/v0.17.0...v0.17.1
