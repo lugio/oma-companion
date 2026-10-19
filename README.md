@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-0.17.4-blue" /></a>
+  <a href="CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-0.17.5-blue" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" /></a>
   <a href="https://omarchy.org"><img alt="Omarchy" src="https://img.shields.io/badge/Omarchy-4-orange" /></a>
   <img alt="Quickshell" src="https://img.shields.io/badge/Quickshell-QML-41cd52" />
@@ -118,6 +118,10 @@ searching, reading, writing code, running a command, reading mail, or dreaming w
 Drawn from your theme's colours. → [All expressions](docs/expressions.md)
 
 <a id="safety"></a>
+
+French and English have complete built-in voice resources. Additional interface translations do not
+add voice models or approval grammars: English voice fallback is explicitly shown, while
+transcription keeps the chosen language where supported. → [Language support](docs/voice.md#interface-translation-versus-complete-voice-support)
 
 ## 🛡️ Safety first
 

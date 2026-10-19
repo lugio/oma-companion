@@ -25,11 +25,18 @@ Item {
     LangLoader { id: langFile; lang: root.lang }
     readonly property var tr: langFile.table
     property var languages: []
+    property string voiceLanguageNotice: ""
     function wakeOf(code) {
-        for (var i = 0; i < languages.length; i++)
-            if (languages[i].code === code)
-                return languages[i].wake || "";
-        return "";
+        var fallback = "";
+        for (var i = 0; i < languages.length; i++) {
+            if (languages[i].code === code && languages[i].wake)
+                return languages[i].wake;
+            if (languages[i].code === "en")
+                fallback = languages[i].wake || "";
+        }
+        // Même repli que texts.wake_phrase : un ancien défaut français ne doit pas devenir
+        // une prétendue phrase personnalisée quand la traduction n'a pas de mot d'éveil.
+        return fallback;
     }
     function t(key, a, b, c) {
         return I18n.format(tr[key], a, b, c);
@@ -844,6 +851,7 @@ Item {
             // celui-ci dit ce que le moteur a VRAIMENT chargé — un dossier effacé remet "".
             rolesAvailable = data.roles || [];
             languages = data.languages || [];
+            voiceLanguageNotice = data.voiceLanguageNotice || "";
             access = data.access || [];
             applyRole(data.role);
             // Les modes viennent du moteur (agents.MODES) : une seule échelle, pas deux listes.
@@ -884,6 +892,7 @@ Item {
             if (provider === "omarchy" && agentProblem)
                 problem = agentProblem;
         } else if (data.event === "agent") {
+            voiceLanguageNotice = data.voiceLanguageNotice || "";
             // Rafraîchissement de l'agent et du harnais seuls : ne touche jamais à l'écoute.
             agentName = data.agentName || "";
             agentProblem = data.agentProblem || "";

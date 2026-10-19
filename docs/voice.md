@@ -42,6 +42,44 @@ the check of pinned Python packages.
 See [model attributions and licenses](model-licenses.md), especially the unresolved English Lessac
 voice licensing. That voice is unchanged in this release.
 
+## Interface translation versus complete voice support
+
+Only French and English currently have a complete set of built-in voice resources and command
+grammars. Adding `lang/de.json`, for example, translates the interface; it does not add German
+Piper/Vosk models or qualified approval words.
+
+Transcription keeps the selected language code. For a language without a built-in vocabulary hint
+or hallucination filter, both stay empty; no French or English hint/filter is substituted.
+Parakeet v3 detects its 25 languages automatically: bg, hr, cs, da, nl, en, et, fi, fr, de, el, hu,
+it, lv, lt, mt, pl, pt, ro, sk, sl, es, sv, ru and uk. See the
+[upstream model card](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3).
+For any other code, only local Whisper is tried, regardless of the engine preference; an unavailable
+or unsupported Whisper language is reported as an error, never replaced by Parakeet. This does not
+claim that arbitrary codes are recognized. The generated Voxtype fallback configuration likewise
+keeps the requested language with an empty hint if no hint exists. An explicitly compatible system
+Voxtype configuration is still reused as before.
+
+For a translated-only language, Piper speech and the Vosk wake-word model keep the existing English
+fallback. Voice commands, stop words and approval/refusal words also keep their existing English
+grammars. Settings → Voice displays that limitation, and the journal reports it once per language
+per backend process, including after a settings change. A user-selected custom wake phrase remains
+a custom phrase; the fallback Vosk model must still know its words. A previous language’s default
+wake phrase follows the English fallback when the new translation supplies none. No new approval word is inferred
+from a translation: `approve`, `go ahead`, `allow it` remain the English approval vocabulary.
+The existing clickable approval cards stay available.
+
+A **complete language** needs all of the following, separately integrated and tested:
+
+- interface and engine translations, including missing-resource/error messages;
+- a licensed, pinned Piper voice and a Vosk model with verified downloads;
+- a wake phrase supported by that Vosk model;
+- command and stop grammars, and conservatively qualified approval/refusal grammars;
+- transcription support in the selected engine, plus listening, false-activation, interruption,
+  negation and approval tests with speakers of that language.
+
+No additional models or third-language grammars are shipped by 0.17.5. An interface translation
+alone does not qualify voice approval in that language or change anyone's permissions.
+
 ## Echo cancellation (optional)
 
 An optional PipeWire configuration is supplied in [examples/99-alison-echo.conf](../examples/99-alison-echo.conf).

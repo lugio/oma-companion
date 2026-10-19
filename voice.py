@@ -33,7 +33,7 @@ import texts
 
 LANG = texts.lang_of({"language": os.environ.get("COMPANION_LANG", "fr")})
 MODEL = Path(os.environ.get("COMPANION_TTS_MODEL",
-                            str(Path.home() / ".local/share/omarchy-companion/models" / texts.VOICE[LANG]["tts"])))
+                            str(Path.home() / ".local/share/omarchy-companion/models" / texts.VOICE[texts.base(LANG)]["tts"])))
 lock = threading.Lock()
 SLICE = 0.05       # tranche d'écriture et de mesure du volume, en secondes
 LEAD = 0.25        # avance maximale du son écrit sur le son joué : garde le volume calé sur la voix

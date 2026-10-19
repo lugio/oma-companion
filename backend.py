@@ -1170,7 +1170,7 @@ def voxtype_config(lang="fr"):
     config = STATE / "voxtype.toml"
     storage.private_dir(STATE)
     storage.private_write(config, '[whisper]\nmodel = ' + json.dumps(str(fallback_model)) + '\nlanguage = '
-                          + json.dumps(lang) + '\nthreads = 4\ninitial_prompt = ' + json.dumps(VOXTYPE_PROMPTS.get(lang, VOXTYPE_PROMPTS["fr"])) + '\n')
+                          + json.dumps(lang) + '\nthreads = 4\ninitial_prompt = ' + json.dumps(VOXTYPE_PROMPTS.get(lang, "")) + '\n')
     return config, warning
 
 
@@ -1259,6 +1259,7 @@ class Companion:
         # Le micro ne s'ouvre jamais sans qu'une de ces deux surfaces soit à l'écran.
         self.strip_visible = False
         self.voice_setup_running = False
+        self.voice_languages_announced = set()
 
     @property
     def brain(self):
@@ -1439,6 +1440,17 @@ class Companion:
             self.journal(self.t("journal.lang_missing", code=lang, count=len(holes), keys=", ".join(holes[:5])),
                          "securite", "bruit")
         return len(holes)
+
+    def voice_language_notice(self, lang):
+        """Le repli vocal est visible ; un seul avertissement par langue et par démarrage."""
+        if lang in texts.BASE:
+            return ""
+        name = texts.LANG_META.get(lang, {}).get("name", lang)
+        notice = texts.t(lang, "voice.language_fallback", language_name=name)
+        if lang not in self.voice_languages_announced:
+            self.voice_languages_announced.add(lang)
+            self.journal(notice, "voix", "alerte")
+        return notice
 
     def sync_sources(self, config):
         """Les trois pointeurs (courrier, comptabilité, portail) suivent les réglages.
@@ -1841,6 +1853,7 @@ class Companion:
                   roles=roles.available(config), role=self.role_state(config),
                   modes=list(agents.MODES), access=self.access_state(config),
                   languages=texts.languages(),
+                  voiceLanguageNotice=self.voice_language_notice(lang),
                   brainLevel=agents.support_level(agent),
                   secrets=self.secrets_state(),
                   persona={"text": persona_text(), "custom": bool(persona_text())},
@@ -1858,6 +1871,7 @@ class Companion:
         agent = agents.default_agent()
         lang = self.lang()
         self.emit("agent", agentName=agents.NAMES.get(agent, agent), agentProblem=agents.describe(agent, lang) or "",
+                  voiceLanguageNotice=self.voice_language_notice(lang),
                   harness=agents.harness(agent, mode_of(self.config()), lang),
                   harnessUnsafe=agents.unsafe(agent))
 

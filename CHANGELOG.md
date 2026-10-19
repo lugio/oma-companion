@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.17.5] — 2026-10-19
+
+### Fixed
+- Start transcription for additional interface languages without indexing French/English-only tables; use empty vocabulary hints and hallucination filters when none exist for the selected language.
+- Keep the requested Whisper and generated Voxtype language; never fall back to Parakeet outside its 25 supported languages.
+- Resolve the existing English Piper fallback without a missing-language exception; switch a previous default wake phrase to English for a translation without its own wake phrase, while preserving custom phrases.
+
+### Changed
+- Show English speech, wake-model and voice-grammar fallback in Voice settings and log it once per language per backend process, including settings changes. Keep existing approval words unchanged.
+- Document the separate resources and validation required for complete voice support; adding an interface translation does not add those capabilities.
+
 ## [0.17.4] — 2026-10-19
 
 ### Security
@@ -63,6 +74,7 @@ First public release.
 - Backup and restore of preferences with preview; credential files are not copied (free-form text may contain confidential information).
 - Optional Reachy Mini body with a paired settings page.
 
+[0.17.5]: https://github.com/lugio/oma-companion/compare/v0.17.4...v0.17.5
 [0.17.4]: https://github.com/lugio/oma-companion/compare/v0.17.3...v0.17.4
 [0.17.3]: https://github.com/lugio/oma-companion/compare/v0.17.2...v0.17.3
 [0.17.2]: https://github.com/lugio/oma-companion/compare/v0.17.1...v0.17.2

@@ -1392,6 +1392,10 @@ RowLayout {
                 Layout.fillWidth: true
                 spacing: Style.spacing.lg
                 Label { text: settings.app.tr.label_voice }
+                Hint {
+                    visible: settings.app.voiceLanguageNotice !== ""
+                    text: settings.app.voiceLanguageNotice
+                }
                 // Premier usage : la voix locale n'est pas livrée avec le plugin. Rien ne s'installe
                 // sans ce clic ; le moteur annonce chaque étape.
                 ColumnLayout {

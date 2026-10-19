@@ -634,6 +634,7 @@
     "voice.step_models": "Voice models (French and English, about 1.3 GB with Parakeet and Whisper, checksum-verified)",
     "voice.step_failed": "{label}: failed. ",
     "voice.interrupted": "Installation interrupted: {error}",
+    "voice.language_fallback": "Voice and wake-word model: English, not yet available in {language_name}. Voice commands, stop and approval words also stay in English; approval cards remain available.",
     "voice.installed": "Voice installed. Models have been downloaded and verified; no download on first listen.",
     "voice.incomplete": "Installation incomplete: try again, the journal says which step failed.",
     "ha.connected": "Connected. {count} controllable entity groups.",

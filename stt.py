@@ -30,7 +30,9 @@ import time
 import texts
 
 # Langue de l'écoute : posée par le Compagnon au lancement (COMPANION_STT_LANG), français par défaut.
-LANG = texts.lang_of({"language": os.environ.get("COMPANION_STT_LANG", "fr")})
+# Garder le code demandé, même sans traduction installée : la transcription ne doit pas
+# changer de langue au prétexte que l'interface ne la connaît pas.
+LANG = os.environ.get("COMPANION_STT_LANG", "fr").strip().lower() or "fr"
 # Un seul modèle admis : l'ancienne surcharge COMPANION_STT_MODEL est ignorée.
 MODEL = "small"
 THREADS = int(os.environ.get("COMPANION_STT_THREADS", "4"))
@@ -49,7 +51,11 @@ PROMPTS = {
            "carport, Home Assistant, Omarchy, Hyprland, code mode, home mode, conversation, "
            "Opus, Sonnet, Haiku, Fable, theme, volume, brightness."),
 }
-PROMPT = PROMPTS[LANG]
+PROMPT = PROMPTS.get(LANG, "")
+
+# Langues du modèle Parakeet TDT v3 déjà livré (fiche amont, voir docs/voice.md).
+PARAKEET_LANGUAGES = frozenset(("bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el", "hu",
+                                "it", "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "es", "sv", "ru", "uk"))
 
 
 def emit(event, **data):
@@ -71,7 +77,9 @@ NOISE = {
 
 def drop_noise(text, lang=None):
     """Retire les formules de sous-titrage inventées sur le silence. Rien d'autre."""
-    pattern = NOISE.get(lang or LANG, NOISE["fr"])
+    pattern = NOISE.get(lang or LANG)
+    if pattern is None:
+        return text.strip()
     parts = [p.strip() for p in re.split(r"(?<=[.!?…])\s+", text) if p.strip()]
     kept = [p for p in parts if not pattern.match(p)]
     return " ".join(kept).strip()
@@ -156,9 +164,11 @@ def load_parakeet():
 
 
 def load():
-    """Le moteur demandé, sinon l'autre : une Alison sans transcription n'est jamais une option."""
+    """Le moteur demandé, sinon l'autre, seulement s'il reconnaît la langue demandée."""
     order = (("parakeet", "parakeet-v3", load_parakeet), ("whisper", MODEL, load_whisper))
-    if ENGINE == "whisper":
+    if LANG not in PARAKEET_LANGUAGES:
+        order = (("whisper", MODEL, load_whisper),)  # pas de faux repli vers un moteur incompatible
+    elif ENGINE == "whisper":
         order = order[::-1]
     failures = []
     for rank, (name, label, loader) in enumerate(order):

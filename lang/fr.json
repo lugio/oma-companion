@@ -634,6 +634,7 @@
     "voice.step_models": "Modèles de voix (français et anglais, environ 1,3 Go avec Parakeet et Whisper, empreintes vérifiées)",
     "voice.step_failed": "{label} : échec. ",
     "voice.interrupted": "Installation interrompue : {error}",
+    "voice.language_fallback": "Voix et modèle du mot d’éveil : anglais, pas encore disponibles en {language_name}. Les commandes vocales, les mots d’arrêt et d’approbation restent en anglais ; les cartes restent disponibles.",
     "voice.installed": "Voix installée. Les modèles ont été téléchargés et vérifiés ; aucun téléchargement à la première écoute.",
     "voice.incomplete": "Installation incomplète : réessaie, le journal dit quelle étape a échoué.",
     "ha.connected": "Connecté. {count} familles d'entités pilotables.",
