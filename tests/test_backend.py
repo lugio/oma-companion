@@ -430,12 +430,27 @@ class ModesAndVoiceTests(unittest.TestCase):
                 stdout = iter(())
                 def poll(self): return None
             return P()
-        with patch.object(self.agents.subprocess, "Popen", fake_popen):
+        run_dir = Path(tempfile.mkdtemp()) / "cerveau"
+        self.addCleanup(lambda: __import__("shutil").rmtree(run_dir.parent, ignore_errors=True))
+        session.system_prompt = "prompt\nSOUVENIR PRIVÉ : le carnet"
+        with patch.object(self.agents.subprocess, "Popen", fake_popen), patch.object(self.agents, "RUN_DIR", run_dir):
             session.start(resume=False)
         argv = recorded["argv"]
         self.assertIn("--model", argv); self.assertEqual(argv[argv.index("--model") + 1], "opus")
         self.assertIn("user,project,local", argv)  # mode code
-        self.assertTrue(any(self.agents.ha_prefix() in a for a in argv))  # helper HA pré-autorisé
+        # Revue du store (19/10) : ni la consigne (carnet) ni les réglages (emplacements privés) en arguments,
+        # lisibles par `ps` ; ils passent par des fichiers 600 d'un dossier 700, effacés à la fermeture.
+        self.assertFalse(any("SOUVENIR" in a for a in argv))
+        self.assertNotIn("--append-system-prompt", argv)
+        settings_file = Path(argv[argv.index("--settings") + 1])
+        prompt_file = Path(argv[argv.index("--append-system-prompt-file") + 1])
+        self.assertIn(self.agents.ha_prefix(), settings_file.read_text())  # helper HA pré-autorisé
+        self.assertIn("SOUVENIR PRIVÉ", prompt_file.read_text())
+        self.assertEqual(oct(prompt_file.stat().st_mode & 0o777), "0o600")
+        self.assertEqual(oct(run_dir.stat().st_mode & 0o777), "0o700")
+        session.process = None
+        session.close()
+        self.assertFalse(prompt_file.exists() or settings_file.exists())
 
     def test_conversation_transcript_becomes_next_question(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(backend, "STATE", Path(directory)), \

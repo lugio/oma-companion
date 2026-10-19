@@ -25,6 +25,21 @@ import roles
 import texts
 
 HOME = Path.home()
+# Consigne et réglages du processus Claude : passés par FICHIERS privés, jamais en arguments — une ligne de
+# commande est lisible par tout programme de la session (`ps`), et la consigne contient le carnet de
+# l'utilisateur, les réglages ses emplacements privés (revue du store, 19/10/2026).
+RUN_DIR = (Path(os.environ["XDG_RUNTIME_DIR"]) / "omarchy-companion" / "cerveau" if os.environ.get("XDG_RUNTIME_DIR")
+           else HOME / ".local/state/omarchy-companion/cerveau")
+
+
+def private_file(text, suffix):
+    """Écrit `text` dans un fichier 600 d'un dossier 700 (nom imprévisible) et rend son chemin."""
+    RUN_DIR.mkdir(parents=True, exist_ok=True)
+    os.chmod(RUN_DIR, 0o700)
+    fd, path = tempfile.mkstemp(prefix="claude-", suffix=suffix, dir=str(RUN_DIR))
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(text)
+    return path
 PLUGIN_DIR = Path(__file__).resolve().parent
 GUARD = PLUGIN_DIR / "guard.py"
 
@@ -512,6 +527,15 @@ class ClaudeSession:
         self.process = None
         self.lines = None
         self.lock = threading.Lock()
+        self.files = []                # consigne et réglages du processus en cours (fichiers 600)
+
+    def forget_files(self):
+        for path in self.files:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+        self.files = []
 
     def alive(self):
         return self.process is not None and self.process.poll() is None
@@ -521,9 +545,11 @@ class ClaudeSession:
         # Les outils pré-autorisés ne demandent rien ; tout le reste passe par la carte.
         settings = build_settings(self.mode, self.home, self.private, self.mail, self.role, self.erp, self.portail, self.delegate,
                                   self.robot)
+        self.forget_files()
+        self.files = [private_file(json.dumps(settings), ".json"), private_file(self.system_prompt, ".txt")]
         argv = ["claude", "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
                 "--include-partial-messages", "--permission-mode", "default", "--permission-prompt-tool", "stdio",
-                "--settings", json.dumps(settings), "--append-system-prompt", self.system_prompt, "--max-turns", "20"]
+                "--settings", self.files[0], "--append-system-prompt-file", self.files[1], "--max-turns", "20"]
         if self.mode == "code":
             # Session de dev complète : réglages user/projet/local, MCP, skills, agents, mémoire.
             argv += ["--setting-sources", "user,project,local"]
@@ -589,6 +615,7 @@ class ClaudeSession:
             if self.process.stdout is not None:
                 self.process.stdout.close()
             self.process = None
+        self.forget_files()
 
     def ask(self, question, on_partial, on_permission=None, timeout=180):
         """Pose la question. `on_permission(request)` est appelé pour chaque demande de

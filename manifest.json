@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.lugio.companion",
   "name": "Alison",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "description": "Desktop assistant: Omarchy’s default agent, actions approved with a click, local voice and wake word, and self-organizing memory.",
   "author": "lugio",
   "license": "GPL-3.0-or-later",

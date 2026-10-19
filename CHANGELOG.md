@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [0.17.1] — 2026-10-19
+
+### Security
+- The agent's system prompt (which includes the user's notebook) and its settings (which list private
+  locations) are no longer passed as command-line arguments, readable by any process through `ps`.
+  They go through private files (600, in a 700 directory under `$XDG_RUNTIME_DIR`), deleted when the
+  session closes. Reported during the Omarchy store review.
+
 ## [0.17.0] — 2026-10-19
 
 First public release.
@@ -20,4 +28,5 @@ First public release.
 - Backup and restore of preferences with preview; secrets never exported.
 - Optional Reachy Mini body with a paired settings page.
 
+[0.17.1]: https://github.com/lugio/oma-companion/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/lugio/oma-companion/releases/tag/v0.17.0

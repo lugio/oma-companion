@@ -7,7 +7,7 @@ Reports are taken seriously.
 
 | Version | Supported |
 |---|---|
-| 0.17.x | ✅ |
+| 0.17.x | ✅ (latest patch) |
 | < 0.17 | ❌ |
 
 ## Reporting a vulnerability
